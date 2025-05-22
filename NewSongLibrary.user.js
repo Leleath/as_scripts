@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.1
+// @version      0.4
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -8,6 +8,8 @@
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
+// @updateURL    https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
+// @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
 
 'use strict';
