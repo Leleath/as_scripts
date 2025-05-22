@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.7.1
+// @version      0.7.2
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -47,12 +47,15 @@ GM_addStyle(`
         color: white;
     }
     .elNSLFormGroupLegend {
+        text-align: center;
         font-size: 18px;
     }
     .elNSLFormSearch {
         color: black;
+        width: 100%;
     }
     .elNSLFormSubmit {
+        width: 100%;
         color: black;
     }
     .elNSLSongEntry {
