@@ -356,7 +356,7 @@ const htmlContent = `
 
                     <div>
                         {animeName}
-                        <div class="elNSLSongName">{songName} - <span class="elNSLSongArtist">{songArtist}</span></div>
+                        <div class="elNSLSongName">{songName} - <span class="elNSLSongArtist">{songArtist}</span> {playerStatus}</div>
                     </div>
 
                     <div class="elNSLSongPlay">
@@ -581,6 +581,8 @@ class NewSongLibrary {
         this.allSongs;
         this.audioPlayer;
 
+        this.playerAnimeStatusHas = false;
+
         this.handleSocketCommand = this.handleSocketCommand.bind(this);
 
         this.filterData = {
@@ -609,13 +611,8 @@ class NewSongLibrary {
     }
 
     handleSocketCommand(event) {
-        // console.log(JSON.stringify(event))
+        console.log(JSON.stringify(event))
 
-        if (event.command === 'get anime status list') {
-            this.animeStatusList = event.data.animeListMap;
-
-            this.combineLists();
-        }
         if (event.command === 'get song extended info') {
             const song = event.data;
 
@@ -626,6 +623,19 @@ class NewSongLibrary {
                 this.groupMap.find(item => item.songGroupId == this.audioPlayer.playlist[index].songGroupId);
 
             this.audioPlayer.loadTrack(index, songArtist, song.fileName);
+        }
+        if (event.command === 'get anime status list') {
+            this.animeStatusList = event.data.animeListMap;
+
+            unsafeWindow[socketName]._socket.emit("command", {
+                type: "library",
+                command: "get player status list",
+            });
+        }
+        if (event.command === 'get player status list') {
+            this.playerStatusList = event.data.statusListMap;
+            
+            this.combineLists();
         }
     }
 
@@ -675,7 +685,7 @@ class NewSongLibrary {
             const anime = this.animeMap[key];
 
             const annId = String(anime.annId);
-            const playerStatus = this.animeStatusList[annId] || 0;
+            const animeStatus = this.animeStatusList[annId] || 0;
 
             const commonSongData = {
                 annId: anime.annId,
@@ -684,7 +694,7 @@ class NewSongLibrary {
                 seasonId: anime.seasonId,
                 names: anime.names,
                 mainNames: anime.mainNames,
-                playerStatus: playerStatus
+                animeStatus: animeStatus
             };
 
             songTypes.forEach(type => {
@@ -695,11 +705,14 @@ class NewSongLibrary {
 
                     if (!songData) return;
 
+                    const playerStatus = this.playerStatusList[songLink.annSongId] || 0;
+
                     tempSongs.push({
                         ...commonSongData,
                         annSongId: songLink.annSongId,
                         songType: songLink.type,
                         songNumber: songLink.number,
+                        playerStatus: playerStatus,
                         ...songData
                     });
                 })
@@ -759,11 +772,11 @@ class NewSongLibrary {
                     !composerGroupName.includes(searchTerm) &&
                     !arrangerArtistName.includes(searchTerm) &&
                     !arrangerGroupName.includes(searchTerm)) {
-                        return false;
-                    }
+                    return false;
+                }
             }
 
-            switch (song.playerStatus) {
+            switch (song.animeStatus) {
                 case 0: if (!this.filterData.other) return false; break;
                 case 1: if (!this.filterData.watching) return false; break;
                 case 2: if (!this.filterData.completed) return false; break;
@@ -817,11 +830,14 @@ class NewSongLibrary {
                 default: songType = `<div class="elNSLSongType elNSLSongTypeOP">INS</div>`;
             }
 
+            const playerStatus = song.playerStatus == 1 ? 'Like' : song.playerStatus == 2 ? 'Dislike' : ''
+
             fragment.append(templateHtml
                 .replace(/\{animeName\}/g, animeName)
                 .replace(/\{songName\}/g, song.name)
                 .replace(/\{songArtist\}/g, songArtist?.name || '')
                 .replace(/\{songType\}/g, songType)
+                .replace(/\{playerStatus\}/g, playerStatus)
                 .replace(/\{songIndex\}/g, index));
         });
 
@@ -833,15 +849,30 @@ class NewSongLibrary {
 
     openView(callback) {
         this.tempCallback = callback;
+
         $('#newLibraryClusterId0').html('')
+
         this.getLibraryMasterList();
     }
 
     closeView() {
         $('#newLibraryClusterId0').html('')
+
         this.animeStatusList = null;
+        this.playerStatusList = null;
         this.libraryMasterList = null;
+
         this.$view.addClass("hide");
+
+        this.animeMap = null;
+        this.songMap = null;
+        this.artistMap = null;
+        this.groupMap = null;
+        this.cuttedSongs = null;
+        this.allSongs = null;
+        this.audioPlayer = null;
+
+        this.playerAnimeStatusHas = false;
     }
 }
 
