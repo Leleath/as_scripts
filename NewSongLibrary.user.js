@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.7
+// @version      0.7.1
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -740,8 +740,10 @@ class NewSongLibrary {
 
                 const songArtistName = song.songArtistId ? artistMapById.get(song.songArtistId).name.toLowerCase() : '';
                 const songGroupName = song.songGroupId ? groupMapById.get(song.songGroupId).name.toLowerCase() : '';
+
                 const composerArtistName = song.composerArtistId ? artistMapById.get(song.composerArtistId).name.toLowerCase() : '';
                 const composerGroupName = song.composerGroupId ? groupMapById.get(song.composerGroupId).name.toLowerCase() : '';
+
                 const arrangerArtistName = song.arrangerArtistId ? artistMapById.get(song.arrangerArtistId).name.toLowerCase() : '';
                 const arrangerGroupName = song.arrangerGroupId ? groupMapById.get(song.arrangerGroupId).name.toLowerCase() : '';
 
@@ -753,8 +755,9 @@ class NewSongLibrary {
                     !composerArtistName.includes(searchTerm) &&
                     !composerGroupName.includes(searchTerm) &&
                     !arrangerArtistName.includes(searchTerm) &&
-                    !arrangerGroupName.includes(searchTerm))
-                    return false;
+                    !arrangerGroupName.includes(searchTerm)) {
+                        return false;
+                    }
             }
 
             switch (song.playerStatus) {
