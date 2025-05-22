@@ -8,8 +8,8 @@
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
-// @updateURL    https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
-// @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
+// @updateURL    https://raw.githubusercontent.com/Leleath/as_scripts/main/NewSongLibrary.user.js
+// @downloadURL  https://raw.githubusercontent.com/Leleath/as_scripts/main/NewSongLibrary.user.js
 // ==/UserScript==
 
 'use strict';
@@ -374,6 +374,7 @@ class AudioPlayerClass {
     constructor() {
         this.currentTrackIndex = 0;
         this.isPlaying = false;
+        this.lastVolume = 0.8;
         this.volume = 0.8;
         this.playlist = [];
         this.audio = new Audio();
@@ -473,6 +474,7 @@ class AudioPlayerClass {
             this.$playBtn.html('<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg>');
         }
     }
+
     togglePlay() {
         if (this.isPlaying) {
             this.audio.pause();
@@ -520,6 +522,9 @@ class AudioPlayerClass {
     }
 
     setVolume(e) {
+        if (this.volume == 0) this.$volumeBtn.text('🔇');
+        else this.$volumeBtn.text(this.audio.volume < 0.5 ? '🔈' : '🔊');
+
         const rect = this.$volumeBar[0].getBoundingClientRect();
         const x = e.clientX - rect.left;
         this.volume = Math.min(Math.max(x / rect.width, 0), 1);
@@ -539,11 +544,11 @@ class AudioPlayerClass {
         if (this.audio.volume > 0) {
             this.lastVolume = this.audio.volume;
             this.audio.volume = 0;
-            // this.$volumeContainer.value(0);
+            this.$volumeContainer.width(`0%`);
             this.$volumeBtn.text('🔇');
         } else {
             this.audio.volume = this.lastVolume || 0.7;
-            // this.$volumeContainer.value(this.audio.volume);
+            this.$volumeContainer.width(`${this.volume * 100}%`);
             this.$volumeBtn.text(this.audio.volume < 0.5 ? '🔈' : '🔊');
         }
     }
