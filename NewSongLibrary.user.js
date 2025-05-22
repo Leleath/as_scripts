@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.7.2
+// @version      0.7.3
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
