@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.4
+// @version      0.5
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -600,7 +600,7 @@ class NewSongLibrary {
     }
 
     handleSocketCommand(event) {
-        console.log(JSON.stringify(event))
+        // console.log(JSON.stringify(event))
 
         if (event.command === 'get anime status list') {
             this.animeStatusList = event.data.animeListMap;
