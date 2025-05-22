@@ -468,6 +468,11 @@ class AudioPlayerClass {
 
         if (!this.isPlaying) {
             this.togglePlay();
+        } else {
+            this.audio.play()
+                .then(() => {
+                    this.setPlayButtonIcon(true);
+                })
         }
     }
 
@@ -634,7 +639,7 @@ class NewSongLibrary {
         }
         if (event.command === 'get player status list') {
             this.playerStatusList = event.data.statusListMap;
-            
+
             this.combineLists();
         }
     }
