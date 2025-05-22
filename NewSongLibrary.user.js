@@ -8,8 +8,8 @@
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
-// @updateURL    https://raw.githubusercontent.com/Leleath/as_scripts/main/NewSongLibrary.user.js
-// @downloadURL  https://raw.githubusercontent.com/Leleath/as_scripts/main/NewSongLibrary.user.js
+// @updateURL    https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
+// @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
 
 'use strict';
@@ -458,7 +458,7 @@ class AudioPlayerClass {
 
         this.$songNameElement.text(track.name);
         this.$songArtistElement.text(songArtist.name);
-        
+
         this.audio.src = `https://naedist.animemusicquiz.com/${audio}`;
 
         this.$durationElement.text(this.formatTime(this.audio.duration));
