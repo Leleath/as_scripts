@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.6
+// @version      0.7
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -458,6 +458,7 @@ class AudioPlayerClass {
 
         this.$songNameElement.text(track.name);
         this.$songArtistElement.text(songArtist.name);
+        
         this.audio.src = `https://naedist.animemusicquiz.com/${audio}`;
 
         this.$durationElement.text(this.formatTime(this.audio.duration));
