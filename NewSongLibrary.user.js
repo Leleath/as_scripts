@@ -17,6 +17,8 @@
 const $ = unsafeWindow.jQuery || window.jQuery;
 
 GM_addStyle(`
+    @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css");
+
     .elNSLMainContainer {
         max-width: 1200px;
         position: relative;
@@ -54,6 +56,10 @@ GM_addStyle(`
         color: black;
         width: 100%;
     }
+    .elNSLFormSelect {
+        color: black;
+        width: 100%;
+    }
     .elNSLFormSubmit {
         width: 100%;
         color: black;
@@ -65,6 +71,10 @@ GM_addStyle(`
     .elNSLSongEntry:first-child {
         margin-top: 0 !important;
         padding: 8px !important;
+    }
+    .elNSLSongEntryPlaying {
+        margin-left: 8px;
+        margin-right: -8px;
     }
     .elNSLSongRow {
         display: grid;
@@ -78,23 +88,23 @@ GM_addStyle(`
         color: gray;
         font-size: 14px;
     }
+    .elNSLSongTypeAnimeStatusRow {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .elNSLAnimeStatus {
+    }
     .elNSLSongType {
         display: flex;
         align-items: center;
     }
     .elNSLSongTypeOP {
-        display: flex;
-        align-items: center;
     }
     .elNSLSongTypeED {
-        display: flex;
-        align-items: center;
     }
     .elNSLSongTypeINS {
-        display: flex;
-        align-items: center;
-    }
-        
+    }   
     .elNSLSongType p {
         margin: 0 !important;
     }
@@ -257,6 +267,18 @@ const htmlContent = `
                         </div>
 
                         <div class="elNSLFormGroup">
+                            <div class="elNSLFormGroupLegend">Sort</div>
+                            <div class="elNSLFormCheckboxGroup">
+                                <select name="sort" class="elNSLFormSelect">
+                                    <option value="nameasc" selected>Name Asc</option>
+                                    <option value="namedesc">Name Desc</option>
+                                    <option value="idasc">annId Asc</option>
+                                    <option value="iddesc">annId Desc</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="elNSLFormGroup">
                             <div class="elNSLFormGroupLegend">Song Type</div>
                             <div class="elNSLFormCheckboxGroup">
                                 <div>
@@ -294,6 +316,18 @@ const htmlContent = `
                                 </div>
                             </div>
                         </div>
+                        
+                        <div class="elNSLFormGroup">
+                            <div class="elNSLFormGroupLegend">Player Status:</div>
+                            <div class="elNSLFormCheckboxGroup">
+                                <div>
+                                    <input type="checkbox" name="added" checked> Added
+                                </div>
+                                <div>
+                                    <input type="checkbox" name="notadded" checked> Not Added
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="elNSLFormActions">
                             <button class="elNSLFormSubmit" type="submit">Search</button>
@@ -314,19 +348,13 @@ const htmlContent = `
                 <div class="elNSLAudioPlayerControls">
                     <div class="elNSLAudioPlayerControlButtons">
                         <button class="elNSLAudioPlayerControlBtn elNSLAudioPlayerPrevBtn" title="Previous">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M13 2.5L5 7.119V3H3v10h2V8.881l8 4.619z"></path>
-                            </svg>
+                            <i class="fa-solid fa-backward-step"></i>
                         </button>
                         <button class="elNSLAudioPlayerControlBtn elNSLAudioPlayerPlayBtn" title="Play">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M4.018 14L14.41 8 4.018 2z"></path>
-                            </svg>
+                            <i class="fa-solid fa-play"></i>
                         </button>
                         <button class="elNSLAudioPlayerControlBtn elNSLAudioPlayerNextBtn" title="Next">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                                <path d="M11 3v4.119L3 2.5v11l8-4.619V13h2V3z"></path>
-                            </svg>
+                            <i class="fa-solid fa-forward-step"></i>
                         </button>
                     </div>
 
@@ -341,7 +369,7 @@ const htmlContent = `
 
                 <div class="elNSLAudioPlayerExtraControls">
                     <div class="elNSLAudioPlayerVolumeContainer">
-                        <a class="elNSLAudioPlayerVolumeIcon">🔊</a>
+                        <a class="elNSLAudioPlayerVolumeIcon"><i class="fa-solid fa-volume-high"></i></a>
                         <div class="elNSLAudioPlayerVolumeBar">
                             <div class="elNSLAudioPlayerVolumeProgress"></div>
                         </div>
@@ -350,9 +378,12 @@ const htmlContent = `
             </div>
         </div>
         <script type="text/template" id="elNSLSongEntryTemplate">
-            <div class="elSongEntry elNSLSongEntry">
+            <div class="elSongEntry elNSLSongEntry" data-song-id="{songId}">
                 <div class="elNSLSongRow">
-                    {songType}
+                    <div class="elNSLSongTypeAnimeStatusRow">
+                        {songType}
+                        {animeStatus}
+                    </div>
 
                     <div>
                         {animeName}
@@ -360,7 +391,7 @@ const htmlContent = `
                     </div>
 
                     <div class="elNSLSongPlay">
-                        <a class="elNSLSongPlayButton" onclick="viewChanger.__controllers.newSongLibrary.audioPlayer.loadSong({songIndex})">Play</a>
+                        <a class="elNSLSongPlayButton" onclick="viewChanger.__controllers.newSongLibrary.audioPlayer.loadSong({songIndex})"><i class="fa-solid fa-play"></i></a>
                     </div>
                 </div>
             </div>
@@ -375,7 +406,7 @@ var newSongLibrary = null;
 
 class AudioPlayerClass {
     constructor() {
-        this.currentTrackIndex = 0;
+        this.currentTrackIndex = -1;
         this.isPlaying = false;
         this.lastVolume = 0.8;
         this.volume = 0.8;
@@ -437,10 +468,16 @@ class AudioPlayerClass {
 
     setPlaylist(newPlaylist) {
         this.playlist = newPlaylist;
-        this.currentTrackIndex = 0;
+        this.currentTrackIndex = -1;
     }
 
     loadSong(index) {
+        if (this.currentTrackIndex == index && this.isPlaying) {
+            this.togglePlay();
+
+            return;
+        }
+
         const annSongId = this.playlist[index].annSongId;
 
         unsafeWindow[socketName]._socket.emit("command", {
@@ -454,13 +491,17 @@ class AudioPlayerClass {
     }
 
     loadTrack(index, songArtist, audio) {
+        $('.elNSLSongEntryPlaying').each((index, element) => {
+            $(element).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-play"></i>');
+        });
+
         if (index < 0 || index >= this.playlist.length) return;
 
         this.currentTrackIndex = index;
         const track = this.playlist[index];
 
         this.$songNameElement.text(track.name);
-        this.$songArtistElement.text(songArtist.name);
+        this.$songArtistElement.text(songArtist);
 
         this.audio.src = `https://naedist.animemusicquiz.com/${audio}`;
 
@@ -472,15 +513,16 @@ class AudioPlayerClass {
             this.audio.play()
                 .then(() => {
                     this.setPlayButtonIcon(true);
+                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-pause"></i>');
                 })
         }
     }
 
     setPlayButtonIcon(isPlaying) {
         if (isPlaying) {
-            this.$playBtn.html('<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h4v12H2zm8 0h4v12h-4z"></path></svg>');
+            this.$playBtn.html('<i class="fa-solid fa-pause"></i>');
         } else {
-            this.$playBtn.html('<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4.018 14L14.41 8 4.018 2z"></path></svg>');
+            this.$playBtn.html('<i class="fa-solid fa-play"></i>');
         }
     }
 
@@ -488,10 +530,12 @@ class AudioPlayerClass {
         if (this.isPlaying) {
             this.audio.pause();
             this.setPlayButtonIcon(false);
+            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-play"></i>');
         } else {
             this.audio.play()
                 .then(() => {
                     this.setPlayButtonIcon(true);
+                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-pause"></i>');
                 })
                 .catch(e => {
                     console.error("Playback error:", e);
@@ -532,7 +576,7 @@ class AudioPlayerClass {
 
     setVolume(e) {
         if (this.volume == 0) this.$volumeBtn.text('🔇');
-        else this.$volumeBtn.text(this.audio.volume < 0.5 ? '🔈' : '🔊');
+        else this.$volumeBtn.html(this.audio.volume < 0.5 ? '<i class="fa-solid fa-volume-low"></i>' : '<i class="fa-solid fa-volume-high"></i>');
 
         const rect = this.$volumeBar[0].getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -554,11 +598,11 @@ class AudioPlayerClass {
             this.lastVolume = this.audio.volume;
             this.audio.volume = 0;
             this.$volumeContainer.width(`0%`);
-            this.$volumeBtn.text('🔇');
+            this.$volumeBtn.html('<i class="fa-solid fa-volume-xmark"></i>');
         } else {
             this.audio.volume = this.lastVolume || 0.7;
             this.$volumeContainer.width(`${this.volume * 100}%`);
-            this.$volumeBtn.text(this.audio.volume < 0.5 ? '🔈' : '🔊');
+            this.$volumeBtn.html(this.audio.volume < 0.5 ? '<i class="fa-solid fa-volume-low"></i>' : '<i class="fa-solid fa-volume-high"></i>');
         }
     }
 
@@ -573,25 +617,23 @@ class AudioPlayerClass {
 
 class NewSongLibrary {
     constructor() {
-        this.$view = $("#newSongLibraryPage");
-
-        this.animeStatusList = null;
-        this.libraryMasterList = null;
+        this.$view;
 
         this.animeMap;
         this.songMap;
         this.artistMap;
         this.groupMap;
-        this.cuttedSongs;
+
         this.allSongs;
+
         this.audioPlayer;
-
-        this.playerAnimeStatusHas = false;
-
         this.handleSocketCommand = this.handleSocketCommand.bind(this);
 
         this.filterData = {
             search: '',
+
+            sort: 'nameasc',
+            // desc, id
 
             op: true,
             ed: true,
@@ -603,12 +645,20 @@ class NewSongLibrary {
             onhold: false,
             dropped: false,
             other: false,
+
+            added: true,
+            notadded: true,
         }
     }
 
     setup() {
+        $('#mainMenu').append(`<div id="mpNewSongLibrary" class="button floatingContainer mainMenuButton" onclick="viewChanger.changeView('newSongLibrary');"><h1>New Song Library</h1></div>`)
+        $('#gameContainer').append(htmlContent)
+
         this.audioPlayer = new AudioPlayerClass();
         this.audioPlayer.setup();
+
+        this.$view = $("#newSongLibraryPage");
 
         $('#elNSLFilterForm').on('submit', (e) => this.handleFilterForm(e));
 
@@ -624,13 +674,21 @@ class NewSongLibrary {
             const index = this.audioPlayer.playlist.findIndex(item => item.annSongId == song.annSongId);
 
             const songArtist = this.audioPlayer.playlist[index].songArtistId ?
-                this.artistMap.find(item => item.songArtistId == this.audioPlayer.playlist[index].songArtistId) :
-                this.groupMap.find(item => item.songGroupId == this.audioPlayer.playlist[index].songGroupId);
+                this.artistMap[this.audioPlayer.playlist[index].songArtistId].name :
+                this.groupMap[this.audioPlayer.playlist[index].songGroupId].name;
 
             this.audioPlayer.loadTrack(index, songArtist, song.fileName);
         }
         if (event.command === 'get anime status list') {
-            this.animeStatusList = event.data.animeListMap;
+            this.animeMap = Object.fromEntries(
+                Object.entries(this.animeMap).map(([key, anime]) => [
+                    key,
+                    {
+                        ...anime,
+                        animeStatus: event.data.animeListMap[key] || 0
+                    }
+                ])
+            );
 
             unsafeWindow[socketName]._socket.emit("command", {
                 type: "library",
@@ -639,6 +697,16 @@ class NewSongLibrary {
         }
         if (event.command === 'get player status list') {
             this.playerStatusList = event.data.statusListMap;
+
+            this.animeMap = Object.fromEntries(
+                Object.entries(this.animeMap).map(([key, anime]) => [
+                    key,
+                    {
+                        ...anime,
+                        playerStatus: event.data.statusListMap[key] || 0
+                    }
+                ])
+            );
 
             this.combineLists();
         }
@@ -667,7 +735,12 @@ class NewSongLibrary {
         });
     }
     async getLibraryMasterList() {
-        this.libraryMasterList = await this.fetchWithGM();
+        const libraryMasterList = await this.fetchWithGM();
+
+        this.animeMap = libraryMasterList.animeMap;
+        this.songMap = libraryMasterList.songMap;
+        this.artistMap = libraryMasterList.artistMap;
+        this.groupMap = libraryMasterList.groupMap;
 
         unsafeWindow[socketName]._socket.emit("command", {
             type: "library",
@@ -676,22 +749,7 @@ class NewSongLibrary {
     }
 
     combineLists() {
-        this.animeMap = (Object.values(this.libraryMasterList.animeMap)).sort((a, b) => a.mainNames.JA ? a.mainNames.JA.localeCompare(b.mainNames.JA) : a.mainNames.EN.localeCompare(b.mainNames.EN));
-        this.songMap = Object.values(this.libraryMasterList.songMap);
-        this.artistMap = Object.values(this.libraryMasterList.artistMap);
-        this.groupMap = Object.values(this.libraryMasterList.groupMap);
-
-        let tempSongs = [];
-
-        const songTypes = ['OP', 'ED', 'INS'];
-        const songMapById = new Map(this.songMap.map(song => [song.songId, song]));
-
-        Object.keys(this.animeMap).forEach(key => {
-            const anime = this.animeMap[key];
-
-            const annId = String(anime.annId);
-            const animeStatus = this.animeStatusList[annId] || 0;
-
+        this.allSongs = Object.values(this.animeMap).flatMap(anime => {
             const commonSongData = {
                 annId: anime.annId,
                 category: anime.category,
@@ -699,32 +757,27 @@ class NewSongLibrary {
                 seasonId: anime.seasonId,
                 names: anime.names,
                 mainNames: anime.mainNames,
-                animeStatus: animeStatus
+                animeStatus: anime.animeStatus
             };
 
-            songTypes.forEach(type => {
-                if (!anime.songLinks[type]) return;
+            return ['OP', 'ED', 'INS'].flatMap(type =>
+                anime.songLinks[type]
+                    ? Object.values(anime.songLinks[type]).map(songLink => {
+                        const songData = this.songMap[songLink.songId];
+                        if (!songData) return null;
 
-                Object.values(anime.songLinks[type]).forEach(songLink => {
-                    const songData = songMapById.get(songLink.songId);
-
-                    if (!songData) return;
-
-                    const playerStatus = this.playerStatusList[songLink.annSongId] || 0;
-
-                    tempSongs.push({
-                        ...commonSongData,
-                        annSongId: songLink.annSongId,
-                        songType: songLink.type,
-                        songNumber: songLink.number,
-                        playerStatus: playerStatus,
-                        ...songData
-                    });
-                })
-            })
+                        return {
+                            ...commonSongData,
+                            annSongId: songLink.annSongId,
+                            songType: songLink.type,
+                            songNumber: songLink.number,
+                            playerStatus: songLink.playerStatus,
+                            ...songData
+                        };
+                    }).filter(Boolean)
+                    : []
+            );
         });
-
-        this.allSongs = tempSongs;
 
         this.renderSongList();
     }
@@ -734,6 +787,7 @@ class NewSongLibrary {
 
         this.filterData = {
             search: e.target.search.value,
+            sort: e.target.sort.value,
             op: e.target.op.checked,
             ed: e.target.ed.checked,
             insert: e.target.insert.checked,
@@ -742,16 +796,15 @@ class NewSongLibrary {
             completed: e.target.completed.checked,
             onhold: e.target.onhold.checked,
             dropped: e.target.dropped.checked,
-            other: e.target.other.checked
+            other: e.target.other.checked,
+            added: e.target.added.checked,
+            notadded: e.target.notadded.checked,
         };
 
         this.renderSongList();
     }
 
     filterSongs(songsData) {
-        const artistMapById = new Map(this.artistMap.map(artist => [artist.songArtistId, artist]));
-        const groupMapById = new Map(this.groupMap.map(group => [group.songGroupId, group]));
-
         return songsData.filter(song => {
             if (this.filterData.search !== '') {
                 const searchTerm = this.filterData.search.toLowerCase();
@@ -759,14 +812,14 @@ class NewSongLibrary {
                 const animeNameJA = song.mainNames.JA?.toLowerCase() || '';
                 const animeNameEN = song.mainNames.EN?.toLowerCase() || '';
 
-                const songArtistName = song.songArtistId ? artistMapById.get(song.songArtistId).name.toLowerCase() : '';
-                const songGroupName = song.songGroupId ? groupMapById.get(song.songGroupId).name.toLowerCase() : '';
+                const songArtistName = song.songArtistId ? this.artistMap[song.songArtistId].name.toLowerCase() : '';
+                const songGroupName = song.songGroupId ? this.groupMap[song.songGroupId].name.toLowerCase() : '';
 
-                const composerArtistName = song.composerArtistId ? artistMapById.get(song.composerArtistId).name.toLowerCase() : '';
-                const composerGroupName = song.composerGroupId ? groupMapById.get(song.composerGroupId).name.toLowerCase() : '';
+                const composerArtistName = song.composerArtistId ? this.artistMap[song.composerArtistId].name.toLowerCase() : '';
+                const composerGroupName = song.composerGroupId ? this.groupMap[song.composerGroupId].name.toLowerCase() : '';
 
-                const arrangerArtistName = song.arrangerArtistId ? artistMapById.get(song.arrangerArtistId).name.toLowerCase() : '';
-                const arrangerGroupName = song.arrangerGroupId ? groupMapById.get(song.arrangerGroupId).name.toLowerCase() : '';
+                const arrangerArtistName = song.arrangerArtistId ? this.artistMap[song.arrangerArtistId].name.toLowerCase() : '';
+                const arrangerGroupName = song.arrangerGroupId ? this.groupMap[song.arrangerGroupId].name.toLowerCase() : '';
 
                 if (!songName.includes(searchTerm) &&
                     !animeNameJA.includes(searchTerm) &&
@@ -802,22 +855,40 @@ class NewSongLibrary {
         });
     }
 
+    changePlayerStatus(el, id) {
+        let playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
+
+        if (el.checked) playerStatusList.push(id)
+        else playerStatusList = playerStatusList.filter(psl => psl !== id)
+
+        localStorage.setItem('playerStatusList', JSON.stringify(playerStatusList))
+    }
+
     renderSongList() {
+        const playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
+
         $('#newLibraryClusterId0').html('');
 
         const templateScript = $('#elNSLSongEntryTemplate');
 
-        const songsData = this.filterSongs(this.allSongs);
+        const sortedSongsData = (this.filterSongs(this.allSongs)).sort((a, b) => {
+            switch (this.filterData.sort) {
+                case 'idasc': return a.annId - b.annId || a.type - b.type || a.number - b.number; break;
+                case 'iddesc': return b.annId - a.annId || a.type - b.type || a.number - b.number; break;
+                case 'namedesc': return -((a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || "")); break;
+                default: return (a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || ""); // asc
+            }
+        });
 
-        this.audioPlayer.setPlaylist(songsData);
-
-        const artistMapById = new Map(this.artistMap.map(artist => [artist.songArtistId, artist]));
-        const groupMapById = new Map(this.groupMap.map(group => [group.songGroupId, group]));
+        this.audioPlayer.setPlaylist(sortedSongsData);
 
         const fragment = $(document.createDocumentFragment());
         const templateHtml = templateScript.html();
 
-        songsData.forEach((song, index) => {
+        sortedSongsData.forEach((song, index) => {
+            // мб в фильтрацию?
+            if ((!this.filterData.added && playerStatusList.includes(song.songId)) || (!this.filterData.notadded && !playerStatusList.includes(song.songId))) return;
+
             const animeName = song.mainNames.JA
                 ? song.mainNames.EN && song.mainNames.JA !== song.mainNames.EN
                     ? `<div class="elNSLSongAnimeNameMain">${song.mainNames.JA} <span class="elNSLSongAnimeNameSecond">${song.mainNames.EN}</span></div>`
@@ -825,14 +896,26 @@ class NewSongLibrary {
                 : `<div class="elNSLSongAnimeNameMain">${song.mainNames.EN}</div>` || '';
 
             const songArtist = song.songArtistId
-                ? artistMapById.get(song.songArtistId)
-                : groupMapById.get(song.songGroupId);
+                ? this.artistMap[song.songArtistId]
+                : this.groupMap[song.songGroupId];
 
             let songType;
             switch (song.songType) {
                 case 1: songType = `<div class="elNSLSongType elNSLSongTypeOP">OP ${song.songNumber}</div>`; break;
                 case 2: songType = `<div class="elNSLSongType elNSLSongTypeOP">ED ${song.songNumber}</div>`; break;
                 default: songType = `<div class="elNSLSongType elNSLSongTypeOP">INS</div>`;
+            }
+
+            const songCheckbox = `<input type="checkbox" onchange="viewChanger.__controllers.newSongLibrary.changePlayerStatus(this, ${song.songId})" class="elNSLPlayerStatusCheckbox" ${playerStatusList.includes(song.songId) && 'checked'} />`;
+            let animeStatus;
+            switch (song.animeStatus) {
+                case 0: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusOther">- ${songCheckbox}</div>`; break;
+                case 1: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusWatching">W ${songCheckbox}</div>`; break;
+                case 2: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusCompleted">C ${songCheckbox}</div>`; break;
+                case 3: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusOn-Hold">O ${songCheckbox}</div>`; break;
+                case 4: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusDropped">D ${songCheckbox}</div>`; break;
+                case 5: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusPTW">P ${songCheckbox}</div>`; break;
+                default: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusUnknown">U ${songCheckbox}</div>`;
             }
 
             const playerStatus = song.playerStatus == 1 ? 'Like' : song.playerStatus == 2 ? 'Dislike' : ''
@@ -842,7 +925,9 @@ class NewSongLibrary {
                 .replace(/\{songName\}/g, song.name)
                 .replace(/\{songArtist\}/g, songArtist?.name || '')
                 .replace(/\{songType\}/g, songType)
+                .replace(/\{animeStatus\}/g, animeStatus)
                 .replace(/\{playerStatus\}/g, playerStatus)
+                .replace(/\{songId\}/g, song.songId)
                 .replace(/\{songIndex\}/g, index));
         });
 
@@ -863,28 +948,20 @@ class NewSongLibrary {
     closeView() {
         $('#newLibraryClusterId0').html('')
 
-        this.animeStatusList = null;
-        this.playerStatusList = null;
-        this.libraryMasterList = null;
-
         this.$view.addClass("hide");
 
         this.animeMap = null;
         this.songMap = null;
         this.artistMap = null;
         this.groupMap = null;
-        this.cuttedSongs = null;
-        this.allSongs = null;
-        this.audioPlayer = null;
 
-        this.playerAnimeStatusHas = false;
+        this.allSongs = null;
+
+        this.audioPlayer = null;
     }
 }
 
 function setupNewSongLibrary() {
-    $('#mainMenu').append(`<div id="mpNewSongLibrary" class="button floatingContainer mainMenuButton" onclick="viewChanger.changeView('newSongLibrary');"><h1>New Song Library</h1></div>`)
-    $('#gameContainer').append(htmlContent)
-
     newSongLibrary = new NewSongLibrary();
     newSongLibrary.setup();
 
