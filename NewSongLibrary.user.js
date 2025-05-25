@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.7.4
+// @version      0.7.5
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -75,6 +75,14 @@ GM_addStyle(`
     .elNSLSongEntryPlaying {
         margin-left: 8px;
         margin-right: -8px;
+    }
+    .elNSLSongShowMore {
+        width: 100%;
+        padding: 16px;
+        text-align: center;
+    }
+    .elNSLSongShowMoreButton:hover {
+        cursor: pointer;
     }
     .elNSLSongRow {
         display: grid;
@@ -396,13 +404,16 @@ const htmlContent = `
                 </div>
             </div>
         </script>
+        <script type="text/template" id="elNSLSongShowMoreTemplate">
+            <div class="elNSLSongShowMore" id="elNSLShowMore">
+                <a class="elNSLSongShowMoreButton" onclick="viewChanger.__controllers.newSongLibrary.renderBatch()">Show More</a>
+            </div>
+        </script>
     </div>
 `;
 
 const viewChangerName = 'viewChanger';
 const socketName = 'socket';
-
-var newSongLibrary = null;
 
 class AudioPlayerClass {
     constructor() {
@@ -460,7 +471,7 @@ class AudioPlayerClass {
             }
         });
 
-        document.addEventListener('mouseup', () => {
+        $(document).on('mouseup', () => {
             this.isSeeking = false;
             this.isVolumeSeeking = false;
         });
@@ -469,6 +480,12 @@ class AudioPlayerClass {
     setPlaylist(newPlaylist) {
         this.playlist = newPlaylist;
         this.currentTrackIndex = -1;
+    }
+
+    checkPlayingSong() {
+        if (this.currentTrackIndex !== -1) {
+            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-pause"></i>');
+        }
     }
 
     loadSong(index) {
@@ -618,37 +635,33 @@ class AudioPlayerClass {
 class NewSongLibrary {
     constructor() {
         this.$view;
-
+        this.active;
+        this.loaded;
         this.animeMap;
         this.songMap;
         this.artistMap;
         this.groupMap;
-
         this.allSongs;
-
         this.audioPlayer;
-        this.handleSocketCommand = this.handleSocketCommand.bind(this);
-
+        this.currentBatchIndex = 0;
+        this.batchSize = 50;
         this.filterData = {
             search: '',
-
             sort: 'nameasc',
-            // desc, id
-
             op: true,
             ed: true,
             insert: true,
-
             ptw: false,
             watching: true,
             completed: true,
             onhold: false,
             dropped: false,
             other: false,
-
             added: true,
             notadded: true,
         }
+
+        this.originalHandler;
     }
 
     setup() {
@@ -657,58 +670,69 @@ class NewSongLibrary {
 
         this.audioPlayer = new AudioPlayerClass();
         this.audioPlayer.setup();
+        this.active = false;
+        this.loaded = false;
 
         this.$view = $("#newSongLibraryPage");
 
         $('#elNSLFilterForm').on('submit', (e) => this.handleFilterForm(e));
 
-        unsafeWindow[socketName]._socket.on("command", this.handleSocketCommand);
+        // this.originalHandler = unsafeWindow[socketName]._socket.listeners("command")[0];
+
+        // // unsafeWindow[socketName]._socket.addEventListener("command", this.handleSocketCommand);
+
+        // unsafeWindow[socketName]._socket.on("command", this.handleSocketCommand);
     }
 
-    handleSocketCommand(event) {
+    handleSocketCommand = (event) => {
         console.log(JSON.stringify(event))
 
-        if (event.command === 'get song extended info') {
-            const song = event.data;
+        if (this.active) {
+            if (event.command === 'get song extended info') {
+                const song = event.data;
 
-            const index = this.audioPlayer.playlist.findIndex(item => item.annSongId == song.annSongId);
+                const index = this.audioPlayer.playlist.findIndex(item => item.annSongId == song.annSongId);
 
-            const songArtist = this.audioPlayer.playlist[index].songArtistId ?
-                this.artistMap[this.audioPlayer.playlist[index].songArtistId].name :
-                this.groupMap[this.audioPlayer.playlist[index].songGroupId].name;
+                const songArtist = this.audioPlayer.playlist[index].songArtistId ?
+                    this.artistMap[this.audioPlayer.playlist[index].songArtistId].name :
+                    this.groupMap[this.audioPlayer.playlist[index].songGroupId].name;
 
-            this.audioPlayer.loadTrack(index, songArtist, song.fileName);
-        }
-        if (event.command === 'get anime status list') {
-            this.animeMap = Object.fromEntries(
-                Object.entries(this.animeMap).map(([key, anime]) => [
-                    key,
-                    {
-                        ...anime,
-                        animeStatus: event.data.animeListMap[key] || 0
-                    }
-                ])
-            );
+                this.audioPlayer.loadTrack(index, songArtist, song.fileName);
+            }
+            if (event.command === 'get anime status list') {
+                this.animeMap = Object.fromEntries(
+                    Object.entries(this.animeMap).map(([key, anime]) => [
+                        key,
+                        {
+                            ...anime,
+                            animeStatus: event.data.animeListMap[key] || 0
+                        }
+                    ])
+                );
 
-            unsafeWindow[socketName]._socket.emit("command", {
-                type: "library",
-                command: "get player status list",
-            });
-        }
-        if (event.command === 'get player status list') {
-            this.playerStatusList = event.data.statusListMap;
+                unsafeWindow[socketName]._socket.emit("command", {
+                    type: "library",
+                    command: "get player status list",
+                });
+            }
+            if (event.command === 'get player status list') {
+                this.playerStatusList = event.data.statusListMap;
 
-            this.animeMap = Object.fromEntries(
-                Object.entries(this.animeMap).map(([key, anime]) => [
-                    key,
-                    {
-                        ...anime,
-                        playerStatus: event.data.statusListMap[key] || 0
-                    }
-                ])
-            );
+                this.animeMap = Object.fromEntries(
+                    Object.entries(this.animeMap).map(([key, anime]) => [
+                        key,
+                        {
+                            ...anime,
+                            playerStatus: event.data.statusListMap[key] || 0
+                        }
+                    ])
+                );
 
-            this.combineLists();
+                this.combineLists();
+            }
+        } else {
+            // this.originalHandler(event);
+            console.log('handle')
         }
     }
 
@@ -734,18 +758,24 @@ class NewSongLibrary {
             });
         });
     }
+
     async getLibraryMasterList() {
-        const libraryMasterList = await this.fetchWithGM();
+        if (!this.loaded) {
+            const libraryMasterList = await this.fetchWithGM();
 
-        this.animeMap = libraryMasterList.animeMap;
-        this.songMap = libraryMasterList.songMap;
-        this.artistMap = libraryMasterList.artistMap;
-        this.groupMap = libraryMasterList.groupMap;
+            this.animeMap = libraryMasterList.animeMap;
+            this.songMap = libraryMasterList.songMap;
+            this.artistMap = libraryMasterList.artistMap;
+            this.groupMap = libraryMasterList.groupMap;
 
-        unsafeWindow[socketName]._socket.emit("command", {
-            type: "library",
-            command: "get anime status list",
-        });
+            unsafeWindow[socketName]._socket.emit("command", {
+                type: "library",
+                command: "get anime status list",
+            });
+        } else {
+            this.tempCallback();
+            this.$view.removeClass("hide");
+        }
     }
 
     combineLists() {
@@ -805,7 +835,14 @@ class NewSongLibrary {
     }
 
     filterSongs(songsData) {
+        const playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
+
         return songsData.filter(song => {
+            if (
+                (!this.filterData.added && playerStatusList.includes(song.songId)) ||
+                (!this.filterData.notadded && !playerStatusList.includes(song.songId))
+            ) return false;
+
             if (this.filterData.search !== '') {
                 const searchTerm = this.filterData.search.toLowerCase();
                 const songName = song.name.toLowerCase();
@@ -864,30 +901,21 @@ class NewSongLibrary {
         localStorage.setItem('playerStatusList', JSON.stringify(playerStatusList))
     }
 
-    renderSongList() {
+    renderBatch() {
         const playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
 
-        $('#newLibraryClusterId0').html('');
-
-        const templateScript = $('#elNSLSongEntryTemplate');
-
-        const sortedSongsData = (this.filterSongs(this.allSongs)).sort((a, b) => {
-            switch (this.filterData.sort) {
-                case 'idasc': return a.annId - b.annId || a.type - b.type || a.number - b.number; break;
-                case 'iddesc': return b.annId - a.annId || a.type - b.type || a.number - b.number; break;
-                case 'namedesc': return -((a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || "")); break;
-                default: return (a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || ""); // asc
-            }
-        });
-
-        this.audioPlayer.setPlaylist(sortedSongsData);
+        const currentBatchIndexPlusBatchSize = this.currentBatchIndex + this.batchSize;
 
         const fragment = $(document.createDocumentFragment());
+        const endIndex = Math.min(currentBatchIndexPlusBatchSize, this.sortedSongsData.length);
+
+        const templateScript = $('#elNSLSongEntryTemplate');
         const templateHtml = templateScript.html();
 
-        sortedSongsData.forEach((song, index) => {
-            // мб в фильтрацию?
-            if ((!this.filterData.added && playerStatusList.includes(song.songId)) || (!this.filterData.notadded && !playerStatusList.includes(song.songId))) return;
+        $('#elNSLShowMore').remove();
+
+        for (let i = this.currentBatchIndex; i < endIndex; i++) {
+            const song = this.sortedSongsData[i];
 
             const animeName = song.mainNames.JA
                 ? song.mainNames.EN && song.mainNames.JA !== song.mainNames.EN
@@ -928,41 +956,73 @@ class NewSongLibrary {
                 .replace(/\{animeStatus\}/g, animeStatus)
                 .replace(/\{playerStatus\}/g, playerStatus)
                 .replace(/\{songId\}/g, song.songId)
-                .replace(/\{songIndex\}/g, index));
-        });
+                .replace(/\{songIndex\}/g, i));
+        }
+
+        if (this.currentBatchIndex < this.sortedSongsData.length) {
+            const showMoreTemplateScript = $('#elNSLSongShowMoreTemplate');
+            const showMoreTemplateHtml = showMoreTemplateScript.html();
+            fragment.append(showMoreTemplateHtml);
+        }
 
         $('#newLibraryClusterId0').append(fragment);
 
-        this.tempCallback();
-        this.$view.removeClass("hide");
+        this.audioPlayer.checkPlayingSong();
+
+        this.currentBatchIndex = endIndex;
+    }
+
+    renderSongList() {
+        $('#newLibraryClusterId0').html('');
+
+        this.sortedSongsData = (this.filterSongs(this.allSongs)).sort((a, b) => {
+            switch (this.filterData.sort) {
+                case 'idasc': return a.annId - b.annId || a.type - b.type || a.number - b.number; break;
+                case 'iddesc': return b.annId - a.annId || a.type - b.type || a.number - b.number; break;
+                case 'namedesc': return -((a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || "")); break;
+                default: return (a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || ""); // asc
+            }
+        });
+
+        this.audioPlayer.setPlaylist(this.sortedSongsData);
+
+        this.currentBatchIndex = 0;
+
+        this.renderBatch()
+
+        if (!this.loaded) {
+            this.tempCallback();
+            this.$view.removeClass("hide");
+
+            this.loaded = true;
+        }
     }
 
     openView(callback) {
         this.tempCallback = callback;
+        this.active = true;
 
-        $('#newLibraryClusterId0').html('')
+        this.originalHandler = unsafeWindow[socketName]._socket.listeners("command")[0];
+
+        unsafeWindow[socketName]._socket.off('command');
+        unsafeWindow[socketName]._socket.on("command", this.handleSocketCommand);
 
         this.getLibraryMasterList();
     }
 
     closeView() {
-        $('#newLibraryClusterId0').html('')
-
         this.$view.addClass("hide");
 
-        this.animeMap = null;
-        this.songMap = null;
-        this.artistMap = null;
-        this.groupMap = null;
+        this.audioPlayer.audio.pause();
+        this.active = false;
 
-        this.allSongs = null;
-
-        this.audioPlayer = null;
+        unsafeWindow[socketName]._socket.off('command');
+        unsafeWindow[socketName]._socket.on("command", this.originalHandler);
     }
 }
 
 function setupNewSongLibrary() {
-    newSongLibrary = new NewSongLibrary();
+    const newSongLibrary = new NewSongLibrary();
     newSongLibrary.setup();
 
     unsafeWindow[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
