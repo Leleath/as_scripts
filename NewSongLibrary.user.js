@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.7.7
+// @version      0.7.8
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -692,12 +692,6 @@ class NewSongLibrary {
         $('#elNSLFilterForm').on('submit', (e) => this.handleFilterForm(e));
 
         unsafeWindow[socketName]._socket.addEventListener("command", this.handleSocketCommand);
-
-        // this.originalHandler = unsafeWindow[socketName]._socket.listeners("command")[0];
-
-        // // unsafeWindow[socketName]._socket.addEventListener("command", this.handleSocketCommand);
-
-        // unsafeWindow[socketName]._socket.on("command", this.handleSocketCommand);
     }
 
     handleSocketCommand = (event) => {
@@ -746,9 +740,6 @@ class NewSongLibrary {
 
                 this.combineLists();
             }
-        } else {
-            // this.originalHandler(event);
-            console.log('handle')
         }
     }
 
@@ -909,7 +900,7 @@ class NewSongLibrary {
     }
 
     changePlayerStatus(el, id) {
-        const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
+        let playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
 
         if (el.checked) playerStatusList.push(id)
         else playerStatusList = playerStatusList.filter(psl => psl !== id)
@@ -1027,9 +1018,6 @@ class NewSongLibrary {
         )
         this.listners.forEach(listener => listener.unbindListener())
 
-        // unsafeWindow[socketName]._socket.off('command');
-        // unsafeWindow[socketName]._socket.on("command", this.handleSocketCommand);
-
         this.getLibraryMasterList();
     }
 
@@ -1041,9 +1029,6 @@ class NewSongLibrary {
 
         this.listners.forEach(listener => listener.bindListener())
         this.listners = [];
-
-        // unsafeWindow[socketName]._socket.off('command');
-        // unsafeWindow[socketName]._socket.on("command", this.originalHandler);
     }
 }
 
