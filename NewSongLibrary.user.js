@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.7.5
+// @version      0.7.6
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -8,6 +8,9 @@
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_deleteValue
 // @updateURL    https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
@@ -495,16 +498,20 @@ class AudioPlayerClass {
             return;
         }
 
-        const annSongId = this.playlist[index].annSongId;
+        if (this.playlist[index].audio == null) {
+            const annSongId = this.playlist[index].annSongId;
 
-        unsafeWindow[socketName]._socket.emit("command", {
-            type: "library",
-            command: "get song extended info",
-            data: {
-                annSongId,
-                includeFileNames: true
-            },
-        });
+            unsafeWindow[socketName]._socket.emit("command", {
+                type: "library",
+                command: "get song extended info",
+                data: {
+                    annSongId,
+                    includeFileNames: true
+                },
+            });
+        } else {
+            this.loadTrack(index, null, null)
+        }
     }
 
     loadTrack(index, songArtist, audio) {
@@ -518,9 +525,9 @@ class AudioPlayerClass {
         const track = this.playlist[index];
 
         this.$songNameElement.text(track.name);
-        this.$songArtistElement.text(songArtist);
+        this.$songArtistElement.text(track.songArtistString || songArtist);
 
-        this.audio.src = `https://naedist.animemusicquiz.com/${audio}`;
+        this.audio.src = `https://naedist.animemusicquiz.com/${track.audio || audio}`;
 
         this.$durationElement.text(this.formatTime(this.audio.duration));
 
@@ -532,6 +539,11 @@ class AudioPlayerClass {
                     this.setPlayButtonIcon(true);
                     $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-pause"></i>');
                 })
+        }
+
+        if (this.playlist[index].audio == null) {
+            this.playlist[index].audio = audio;
+            this.playlist[index].songArtistString = songArtist;
         }
     }
 
@@ -835,7 +847,8 @@ class NewSongLibrary {
     }
 
     filterSongs(songsData) {
-        const playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
+        // const playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
+        const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
 
         return songsData.filter(song => {
             if (
@@ -893,16 +906,19 @@ class NewSongLibrary {
     }
 
     changePlayerStatus(el, id) {
-        let playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
+        // let playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
+        const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
 
         if (el.checked) playerStatusList.push(id)
         else playerStatusList = playerStatusList.filter(psl => psl !== id)
 
-        localStorage.setItem('playerStatusList', JSON.stringify(playerStatusList))
+        // localStorage.setItem('playerStatusList', JSON.stringify(playerStatusList))
+        GM_setValue("playerStatusList", JSON.stringify(playerStatusList));
     }
 
     renderBatch() {
-        const playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
+        // const playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
+        const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
 
         const currentBatchIndexPlusBatchSize = this.currentBatchIndex + this.batchSize;
 
