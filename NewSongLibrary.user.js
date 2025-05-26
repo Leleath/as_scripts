@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.7.6
+// @version      0.7.7
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -674,6 +674,8 @@ class NewSongLibrary {
         }
 
         this.originalHandler;
+
+        this.listners = [];
     }
 
     setup() {
@@ -688,6 +690,8 @@ class NewSongLibrary {
         this.$view = $("#newSongLibraryPage");
 
         $('#elNSLFilterForm').on('submit', (e) => this.handleFilterForm(e));
+
+        unsafeWindow[socketName]._socket.addEventListener("command", this.handleSocketCommand);
 
         // this.originalHandler = unsafeWindow[socketName]._socket.listeners("command")[0];
 
@@ -847,7 +851,6 @@ class NewSongLibrary {
     }
 
     filterSongs(songsData) {
-        // const playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
         const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
 
         return songsData.filter(song => {
@@ -906,18 +909,15 @@ class NewSongLibrary {
     }
 
     changePlayerStatus(el, id) {
-        // let playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
         const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
 
         if (el.checked) playerStatusList.push(id)
         else playerStatusList = playerStatusList.filter(psl => psl !== id)
 
-        // localStorage.setItem('playerStatusList', JSON.stringify(playerStatusList))
         GM_setValue("playerStatusList", JSON.stringify(playerStatusList));
     }
 
     renderBatch() {
-        // const playerStatusList = JSON.parse(localStorage.getItem('playerStatusList')) || [];
         const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
 
         const currentBatchIndexPlusBatchSize = this.currentBatchIndex + this.batchSize;
@@ -1017,11 +1017,18 @@ class NewSongLibrary {
     openView(callback) {
         this.tempCallback = callback;
         this.active = true;
-
+    
         this.originalHandler = unsafeWindow[socketName]._socket.listeners("command")[0];
 
-        unsafeWindow[socketName]._socket.off('command');
-        unsafeWindow[socketName]._socket.on("command", this.handleSocketCommand);
+        this.listners = [];
+        this.listners.push(
+            unsafeWindow[socketName].listners['get anime status list'][0],
+            unsafeWindow[socketName].listners['get player status list'][0]
+        )
+        this.listners.forEach(listener => listener.unbindListener())
+
+        // unsafeWindow[socketName]._socket.off('command');
+        // unsafeWindow[socketName]._socket.on("command", this.handleSocketCommand);
 
         this.getLibraryMasterList();
     }
@@ -1032,8 +1039,11 @@ class NewSongLibrary {
         this.audioPlayer.audio.pause();
         this.active = false;
 
-        unsafeWindow[socketName]._socket.off('command');
-        unsafeWindow[socketName]._socket.on("command", this.originalHandler);
+        this.listners.forEach(listener => listener.bindListener())
+        this.listners = [];
+
+        // unsafeWindow[socketName]._socket.off('command');
+        // unsafeWindow[socketName]._socket.on("command", this.originalHandler);
     }
 }
 
