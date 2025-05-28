@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.7.8
+// @version      0.7.9
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -20,8 +20,15 @@
 const $ = unsafeWindow.jQuery || window.jQuery;
 
 GM_addStyle(`
-    @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css");
-
+    .svg-icon {
+        width: 1em;
+        height: 1em;
+        vertical-align: -0.125em;
+        fill: white;
+    }
+    .svg-icon-black {
+        fill: black;
+    }
     .elNSLMainContainer {
         max-width: 1200px;
         position: relative;
@@ -67,6 +74,25 @@ GM_addStyle(`
         width: 100%;
         color: black;
     }
+    .elNSLPagination {
+        text-align: center;
+    }
+    .elNSLPagination:last-child {
+        margin-top: 8px;
+    }
+    .elNSLPaginationChange {
+        color: white;
+        padding: 8px;
+        background-color: #1b1b1b;
+        border-radius: 4px;
+        border: none;
+    }
+    .elNSLPaginationChange:first-child {
+        margin-right: 8px;
+    }
+    .elNSLPaginationChange:only-child {
+        margin-right: 0px;
+    }
     .elNSLSongEntry {
         margin-top: 8px !important;
         padding: 8px !important;
@@ -89,7 +115,7 @@ GM_addStyle(`
     }
     .elNSLSongRow {
         display: grid;
-        grid-template-columns: 42px 1fr 30px;
+        grid-template-columns: 50px 1fr 30px;
         gap: 4px;
     }
     .elNSLSongAnimeNameMain {
@@ -154,13 +180,13 @@ GM_addStyle(`
         display: flex;
         flex-direction: column;
     }
-    .elNSLAudioPlayerSongName {
+    .elNSLAudioPlayerSongInfoFirst {
         color: #fff;
         font-size: 14px;
         margin-bottom: 4px;
         font-weight: 600;
     }
-    .elNSLAudioPlayerSongArtist {
+    .elNSLAudioPlayerSongInfoSecond {
         color: #b3b3b3;
         font-size: 12px;
     }
@@ -344,6 +370,8 @@ const htmlContent = `
                             <button class="elNSLFormSubmit" type="submit">Search</button>
                         </div>
                     </form>
+
+                    <div>Songs count: <span id="elNSLSongsCount"></span></div>
                 </div>
                 <div class="elEntryContainerInner elNSLEntryContainerInner" id="newLibraryClusterId0"></div>
             </div>
@@ -351,21 +379,21 @@ const htmlContent = `
             <div class="elNSLAudioPlayer">
                 <div class="elNSLAudioPlayerSongInfo">
                     <div class="elNSLAudioPlayerSongDetails">
-                        <div class="elNSLAudioPlayerSongName">No track selected</div>
-                        <div class="elNSLAudioPlayerSongArtist"></div>
+                        <div class="elNSLAudioPlayerSongInfoFirst">No track selected</div>
+                        <div class="elNSLAudioPlayerSongInfoSecond"></div>
                     </div>
                 </div>
 
                 <div class="elNSLAudioPlayerControls">
                     <div class="elNSLAudioPlayerControlButtons">
                         <button class="elNSLAudioPlayerControlBtn elNSLAudioPlayerPrevBtn" title="Previous">
-                            <i class="fa-solid fa-backward-step"></i>
+                            <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M267.5 440.6c9.5 7.9 22.8 9.7 34.1 4.4s18.4-16.6 18.4-29l0-320c0-12.4-7.2-23.7-18.4-29s-24.5-3.6-34.1 4.4l-192 160L64 241 64 96c0-17.7-14.3-32-32-32S0 78.3 0 96L0 416c0 17.7 14.3 32 32 32s32-14.3 32-32l0-145 11.5 9.6 192 160z"/></svg>
                         </button>
                         <button class="elNSLAudioPlayerControlBtn elNSLAudioPlayerPlayBtn" title="Play">
-                            <i class="fa-solid fa-play"></i>
+                            <svg class="svg-icon svg-icon-black" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>
                         </button>
                         <button class="elNSLAudioPlayerControlBtn elNSLAudioPlayerNextBtn" title="Next">
-                            <i class="fa-solid fa-forward-step"></i>
+                            <svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M52.5 440.6c-9.5 7.9-22.8 9.7-34.1 4.4S0 428.4 0 416L0 96C0 83.6 7.2 72.3 18.4 67s24.5-3.6 34.1 4.4l192 160L256 241l0-145c0-17.7 14.3-32 32-32s32 14.3 32 32l0 320c0 17.7-14.3 32-32 32s-32-14.3-32-32l0-145-11.5 9.6-192 160z"/></svg>
                         </button>
                     </div>
 
@@ -380,7 +408,7 @@ const htmlContent = `
 
                 <div class="elNSLAudioPlayerExtraControls">
                     <div class="elNSLAudioPlayerVolumeContainer">
-                        <a class="elNSLAudioPlayerVolumeIcon"><i class="fa-solid fa-volume-high"></i></a>
+                        <a class="elNSLAudioPlayerVolumeIcon"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M533.6 32.5C598.5 85.2 640 165.8 640 256s-41.5 170.7-106.4 223.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C557.5 398.2 592 331.2 592 256s-34.5-142.2-88.7-186.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM473.1 107c43.2 35.2 70.9 88.9 70.9 149s-27.7 113.8-70.9 149c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C475.3 341.3 496 301.1 496 256s-20.7-85.3-53.2-111.8c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zm-60.5 74.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393.1 284.4 400 271 400 256s-6.9-28.4-17.7-37.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3z"/></svg></a>
                         <div class="elNSLAudioPlayerVolumeBar">
                             <div class="elNSLAudioPlayerVolumeProgress"></div>
                         </div>
@@ -402,7 +430,7 @@ const htmlContent = `
                     </div>
 
                     <div class="elNSLSongPlay">
-                        <a class="elNSLSongPlayButton" onclick="viewChanger.__controllers.newSongLibrary.audioPlayer.loadSong({songIndex})"><i class="fa-solid fa-play"></i></a>
+                        <a class="elNSLSongPlayButton" onclick="viewChanger.__controllers.newSongLibrary.audioPlayer.loadSong({songIndex})"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></a>
                     </div>
                 </div>
             </div>
@@ -434,8 +462,8 @@ class AudioPlayerClass {
     setup() {
         this.$playerElement = $('.elNSLAudioPlayer');
 
-        this.$songNameElement = this.$playerElement.find('.elNSLAudioPlayerSongName');
-        this.$songArtistElement = this.$playerElement.find('.elNSLAudioPlayerSongArtist');
+        this.$songInfoFirstElement = this.$playerElement.find('.elNSLAudioPlayerSongInfoFirst');
+        this.$songInfoSecondElement = this.$playerElement.find('.elNSLAudioPlayerSongInfoSecond');
         this.$progressBar = this.$playerElement.find('.elNSLAudioPlayerProgressBar');
         this.$progressContainer = this.$playerElement.find('.elNSLAudioPlayerProgress');
         this.$currentTimeElement = this.$playerElement.find('.elNSLAudioPlayerProgressTimeStart');
@@ -487,7 +515,7 @@ class AudioPlayerClass {
 
     checkPlayingSong() {
         if (this.currentTrackIndex !== -1) {
-            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-pause"></i>');
+            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
         }
     }
 
@@ -516,7 +544,7 @@ class AudioPlayerClass {
 
     loadTrack(index, songArtist, audio) {
         $('.elNSLSongEntryPlaying').each((index, element) => {
-            $(element).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-play"></i>');
+            $(element).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>');
         });
 
         if (index < 0 || index >= this.playlist.length) return;
@@ -524,8 +552,18 @@ class AudioPlayerClass {
         this.currentTrackIndex = index;
         const track = this.playlist[index];
 
-        this.$songNameElement.text(track.name);
-        this.$songArtistElement.text(track.songArtistString || songArtist);
+        let songType;
+        let songTypeFull = track.songNumber == 0 ? '' : ` ${track.songNumber}`;
+        if (track.rebroadcast) songTypeFull += ' R';
+        if (track.dub) songTypeFull += ' D';
+        switch (track.songType) {
+            case 1: songType = `Opening${songTypeFull}`; break;
+            case 2: songType = `Ending${songTypeFull}`; break;
+            default: songType = `Insert${songTypeFull}`;
+        }
+
+        this.$songInfoFirstElement.text(`${track.name} - ${track.songArtistString || songArtist}`);
+        this.$songInfoSecondElement.text(`${track.mainNames.JA || track.mainNames.EN} (${songType})`);
 
         this.audio.src = `https://naedist.animemusicquiz.com/${track.audio || audio}`;
 
@@ -537,7 +575,7 @@ class AudioPlayerClass {
             this.audio.play()
                 .then(() => {
                     this.setPlayButtonIcon(true);
-                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-pause"></i>');
+                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
                 })
         }
 
@@ -549,9 +587,9 @@ class AudioPlayerClass {
 
     setPlayButtonIcon(isPlaying) {
         if (isPlaying) {
-            this.$playBtn.html('<i class="fa-solid fa-pause"></i>');
+            this.$playBtn.html('<svg class="svg-icon svg-icon-black" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
         } else {
-            this.$playBtn.html('<i class="fa-solid fa-play"></i>');
+            this.$playBtn.html('<svg class="svg-icon svg-icon-black" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>');
         }
     }
 
@@ -559,12 +597,12 @@ class AudioPlayerClass {
         if (this.isPlaying) {
             this.audio.pause();
             this.setPlayButtonIcon(false);
-            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-play"></i>');
+            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>');
         } else {
             this.audio.play()
                 .then(() => {
                     this.setPlayButtonIcon(true);
-                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<i class="fa-solid fa-pause"></i>');
+                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
                 })
                 .catch(e => {
                     console.error("Playback error:", e);
@@ -605,7 +643,7 @@ class AudioPlayerClass {
 
     setVolume(e) {
         if (this.volume == 0) this.$volumeBtn.text('🔇');
-        else this.$volumeBtn.html(this.audio.volume < 0.5 ? '<i class="fa-solid fa-volume-low"></i>' : '<i class="fa-solid fa-volume-high"></i>');
+        else this.$volumeBtn.html(this.audio.volume < 0.5 ? '<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3zM412.6 181.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393.1 284.4 400 271 400 256s-6.9-28.4-17.7-37.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5z"/></svg>' : '<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M533.6 32.5C598.5 85.2 640 165.8 640 256s-41.5 170.7-106.4 223.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C557.5 398.2 592 331.2 592 256s-34.5-142.2-88.7-186.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM473.1 107c43.2 35.2 70.9 88.9 70.9 149s-27.7 113.8-70.9 149c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C475.3 341.3 496 301.1 496 256s-20.7-85.3-53.2-111.8c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zm-60.5 74.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393.1 284.4 400 271 400 256s-6.9-28.4-17.7-37.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3z"/></svg>');
 
         const rect = this.$volumeBar[0].getBoundingClientRect();
         const x = e.clientX - rect.left;
@@ -627,11 +665,11 @@ class AudioPlayerClass {
             this.lastVolume = this.audio.volume;
             this.audio.volume = 0;
             this.$volumeContainer.width(`0%`);
-            this.$volumeBtn.html('<i class="fa-solid fa-volume-xmark"></i>');
+            this.$volumeBtn.html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><path d="M301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3zM425 167l55 55 55-55c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-55 55 55 55c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-55-55-55 55c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l55-55-55-55c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0z"/></svg>');
         } else {
             this.audio.volume = this.lastVolume || 0.7;
             this.$volumeContainer.width(`${this.volume * 100}%`);
-            this.$volumeBtn.html(this.audio.volume < 0.5 ? '<i class="fa-solid fa-volume-low"></i>' : '<i class="fa-solid fa-volume-high"></i>');
+            this.$volumeBtn.html(this.audio.volume < 0.5 ? '<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3zM412.6 181.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393.1 284.4 400 271 400 256s-6.9-28.4-17.7-37.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5z"/></svg>' : '<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M533.6 32.5C598.5 85.2 640 165.8 640 256s-41.5 170.7-106.4 223.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C557.5 398.2 592 331.2 592 256s-34.5-142.2-88.7-186.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM473.1 107c43.2 35.2 70.9 88.9 70.9 149s-27.7 113.8-70.9 149c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C475.3 341.3 496 301.1 496 256s-20.7-85.3-53.2-111.8c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zm-60.5 74.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393.1 284.4 400 271 400 256s-6.9-28.4-17.7-37.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5zM301.1 34.8C312.6 40 320 51.4 320 64l0 384c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352 64 352c-35.3 0-64-28.7-64-64l0-64c0-35.3 28.7-64 64-64l67.8 0L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3z"/></svg>');
         }
     }
 
@@ -655,8 +693,9 @@ class NewSongLibrary {
         this.groupMap;
         this.allSongs;
         this.audioPlayer;
+        this.currentPageIndex = 0;
         this.currentBatchIndex = 0;
-        this.batchSize = 50;
+        this.batchSize = 100;
         this.filterData = {
             search: '',
             sort: 'nameasc',
@@ -841,6 +880,14 @@ class NewSongLibrary {
         this.renderSongList();
     }
 
+    isInSong(dataArray, searchTerm) {
+        for (let i = 0; i < dataArray.length; i++) {
+            if (dataArray[i].includes(searchTerm)) return true;
+        }
+
+        return false;
+    }
+
     filterSongs(songsData) {
         const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
 
@@ -855,25 +902,48 @@ class NewSongLibrary {
                 const songName = song.name.toLowerCase();
                 const animeNameJA = song.mainNames.JA?.toLowerCase() || '';
                 const animeNameEN = song.mainNames.EN?.toLowerCase() || '';
+                const animeNames = song.names ? song.names.map(animeName => animeName.name.toLowerCase()) : [];
 
-                const songArtistName = song.songArtistId ? this.artistMap[song.songArtistId].name.toLowerCase() : '';
-                const songGroupName = song.songGroupId ? this.groupMap[song.songGroupId].name.toLowerCase() : '';
+                const songArtistGroup = song.songArtistId ? this.artistMap[song.songArtistId] : this.groupMap[song.songGroupId];
+                const songArtistGroupName = songArtistGroup?.name?.toLowerCase() ?? '';
+                const songArtistGroupArtistsNames = songArtistGroup?.artistMembers
+                    ?.map(member => this.artistMap[member]?.name?.toLowerCase())
+                    ?.filter(Boolean) || [];
+                const songArtistGroupGroupsNames = songArtistGroup?.groupMembers
+                    ?.map(member => this.groupMap[member]?.name?.toLowerCase())
+                    ?.filter(Boolean) || [];
 
-                const composerArtistName = song.composerArtistId ? this.artistMap[song.composerArtistId].name.toLowerCase() : '';
-                const composerGroupName = song.composerGroupId ? this.groupMap[song.composerGroupId].name.toLowerCase() : '';
+                const composerArtistGroup = song.composerArtistId ? this.artistMap[song.composerArtistId] : this.groupMap[song.composerGroupId];
+                const composerArtistGroupName = composerArtistGroup?.name?.toLowerCase() ?? '';
+                const composerArtistGroupArtistsNames = composerArtistGroup?.artistMembers
+                    ?.map(member => this.artistMap[member]?.name?.toLowerCase())
+                    ?.filter(Boolean) || [];
+                const composerArtistGroupGroupsNames = composerArtistGroup?.groupMembers
+                    ?.map(member => this.groupMap[member]?.name?.toLowerCase())
+                    ?.filter(Boolean) || [];
 
-                const arrangerArtistName = song.arrangerArtistId ? this.artistMap[song.arrangerArtistId].name.toLowerCase() : '';
-                const arrangerGroupName = song.arrangerGroupId ? this.groupMap[song.arrangerGroupId].name.toLowerCase() : '';
+                const arrangerArtistGroup = song.arrangerArtistId ? this.artistMap[song.arrangerArtistId] : this.groupMap[song.arrangerGroupId];
+                const arrangerArtistGroupName = arrangerArtistGroup?.name?.toLowerCase() ?? '';
+                const arrangerArtistGroupArtistsNames = arrangerArtistGroup?.artistMembers
+                    ?.map(member => this.artistMap[member]?.name?.toLowerCase())
+                    ?.filter(Boolean) || [];
+                const arrangerArtistGroupGroupsNames = arrangerArtistGroup?.groupMembers
+                    ?.map(member => this.groupMap[member]?.name?.toLowerCase())
+                    ?.filter(Boolean) || [];
 
                 if (!songName.includes(searchTerm) &&
                     !animeNameJA.includes(searchTerm) &&
                     !animeNameEN.includes(searchTerm) &&
-                    !songArtistName.includes(searchTerm) &&
-                    !songGroupName.includes(searchTerm) &&
-                    !composerArtistName.includes(searchTerm) &&
-                    !composerGroupName.includes(searchTerm) &&
-                    !arrangerArtistName.includes(searchTerm) &&
-                    !arrangerGroupName.includes(searchTerm)) {
+                    !this.isInSong(animeNames, searchTerm) &&
+                    !songArtistGroupName.includes(searchTerm) &&
+                    !this.isInSong(songArtistGroupArtistsNames, searchTerm) &&
+                    !this.isInSong(songArtistGroupGroupsNames, searchTerm) &&
+                    !composerArtistGroupName.includes(searchTerm) &&
+                    !this.isInSong(composerArtistGroupArtistsNames, searchTerm) &&
+                    !this.isInSong(composerArtistGroupGroupsNames, searchTerm) &&
+                    !arrangerArtistGroupName.includes(searchTerm) &&
+                    !this.isInSong(arrangerArtistGroupArtistsNames, searchTerm) &&
+                    !this.isInSong(arrangerArtistGroupGroupsNames, searchTerm)) {
                     return false;
                 }
             }
@@ -908,6 +978,12 @@ class NewSongLibrary {
         GM_setValue("playerStatusList", JSON.stringify(playerStatusList));
     }
 
+    setPage(pageIndex) {
+        this.currentBatchIndex = pageIndex;
+
+        this.renderBatch();
+    }
+
     renderBatch() {
         const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
 
@@ -919,7 +995,26 @@ class NewSongLibrary {
         const templateScript = $('#elNSLSongEntryTemplate');
         const templateHtml = templateScript.html();
 
-        $('#elNSLShowMore').remove();
+        $('#newLibraryClusterId0').html('');
+
+        const pagination = $('<div>');
+        pagination.addClass('elNSLPagination');
+        if (currentBatchIndexPlusBatchSize - this.batchSize > 0) {
+            const prevPage = $('<button>');
+            prevPage.addClass('elNSLPaginationChange')
+            prevPage.attr('onclick', `viewChanger.__controllers.newSongLibrary.setPage(${this.currentBatchIndex - this.batchSize})`);
+            prevPage.text(`Prev Page`)
+            pagination.append(prevPage)
+        }
+        if (currentBatchIndexPlusBatchSize + this.batchSize < this.sortedSongsData.length) {
+            const nextPage = $('<button>');
+            nextPage.addClass('elNSLPaginationChange')
+            nextPage.attr('onclick', `viewChanger.__controllers.newSongLibrary.setPage(${this.currentBatchIndex + this.batchSize})`);
+            nextPage.text(`Next Page`)
+            pagination.append(nextPage)
+        }
+
+        pagination.clone().appendTo(fragment);
 
         for (let i = this.currentBatchIndex; i < endIndex; i++) {
             const song = this.sortedSongsData[i];
@@ -935,10 +1030,13 @@ class NewSongLibrary {
                 : this.groupMap[song.songGroupId];
 
             let songType;
+            let songTypeFull = song.songNumber == 0 ? '' : song.songNumber;
+            if (song.rebroadcast) songTypeFull += ' R';
+            if (song.dub) songTypeFull += ' D';
             switch (song.songType) {
-                case 1: songType = `<div class="elNSLSongType elNSLSongTypeOP">OP ${song.songNumber}</div>`; break;
-                case 2: songType = `<div class="elNSLSongType elNSLSongTypeOP">ED ${song.songNumber}</div>`; break;
-                default: songType = `<div class="elNSLSongType elNSLSongTypeOP">INS</div>`;
+                case 1: songType = `<div class="elNSLSongType elNSLSongTypeOP">OP ${songTypeFull}</div>`; break;
+                case 2: songType = `<div class="elNSLSongType elNSLSongTypeOP">ED ${songTypeFull}</div>`; break;
+                default: songType = `<div class="elNSLSongType elNSLSongTypeOP">INS ${songTypeFull}</div>`;
             }
 
             const songCheckbox = `<input type="checkbox" onchange="viewChanger.__controllers.newSongLibrary.changePlayerStatus(this, ${song.songId})" class="elNSLPlayerStatusCheckbox" ${playerStatusList.includes(song.songId) && 'checked'} />`;
@@ -950,7 +1048,7 @@ class NewSongLibrary {
                 case 3: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusOn-Hold">O ${songCheckbox}</div>`; break;
                 case 4: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusDropped">D ${songCheckbox}</div>`; break;
                 case 5: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusPTW">P ${songCheckbox}</div>`; break;
-                default: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusUnknown">U ${songCheckbox}</div>`;
+                default: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusUnknown">- ${songCheckbox}</div>`;
             }
 
             const playerStatus = song.playerStatus == 1 ? 'Like' : song.playerStatus == 2 ? 'Dislike' : ''
@@ -966,11 +1064,7 @@ class NewSongLibrary {
                 .replace(/\{songIndex\}/g, i));
         }
 
-        if (this.currentBatchIndex < this.sortedSongsData.length) {
-            const showMoreTemplateScript = $('#elNSLSongShowMoreTemplate');
-            const showMoreTemplateHtml = showMoreTemplateScript.html();
-            fragment.append(showMoreTemplateHtml);
-        }
+        pagination.clone().appendTo(fragment);
 
         $('#newLibraryClusterId0').append(fragment);
 
@@ -980,22 +1074,24 @@ class NewSongLibrary {
     }
 
     renderSongList() {
-        $('#newLibraryClusterId0').html('');
-
         this.sortedSongsData = (this.filterSongs(this.allSongs)).sort((a, b) => {
             switch (this.filterData.sort) {
                 case 'idasc': return a.annId - b.annId || a.type - b.type || a.number - b.number; break;
                 case 'iddesc': return b.annId - a.annId || a.type - b.type || a.number - b.number; break;
                 case 'namedesc': return -((a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || "")); break;
-                default: return (a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || ""); // asc
+                default: return (a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || "");
             }
         });
 
         this.audioPlayer.setPlaylist(this.sortedSongsData);
 
         this.currentBatchIndex = 0;
+        this.currentPageIndex = 0;
 
         this.renderBatch()
+
+        const songsCount = this.sortedSongsData.length;
+        $('#elNSLSongsCount').html(songsCount)
 
         if (!this.loaded) {
             this.tempCallback();
@@ -1008,7 +1104,7 @@ class NewSongLibrary {
     openView(callback) {
         this.tempCallback = callback;
         this.active = true;
-    
+
         this.originalHandler = unsafeWindow[socketName]._socket.listeners("command")[0];
 
         this.listners = [];
