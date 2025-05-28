@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.8
+// @version      0.8.1
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -16,6 +16,8 @@
 // ==/UserScript==
 
 'use strict';
+
+const version = '0.8.1'
 
 const globalObj = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 const $ = globalObj.jQuery || window.jQuery;
@@ -295,7 +297,7 @@ const htmlContent = `
         </div>
         <div class="elMainContainer elNSLMainContainer">
             <div class="elNSLHeaderContainer">
-                <h2>New Song Library</h2>
+                <h2>New Song Library ${version}</h2>
             </div>
             <div class="elEntryContainer elNSLEntryContainer">
                 <div class="elEntryContainerInner elNSLEntryContainerInner elNSLFilterContainer">
@@ -1007,7 +1009,7 @@ class NewSongLibrary {
             prevPage.text(`Prev Page`)
             pagination.append(prevPage)
         }
-        if (currentBatchIndexPlusBatchSize + this.batchSize < this.sortedSongsData.length) {
+        if (currentBatchIndexPlusBatchSize < this.sortedSongsData.length) {
             const nextPage = $('<button>');
             nextPage.addClass('elNSLPaginationChange')
             nextPage.attr('onclick', `viewChanger.__controllers.newSongLibrary.setPage(${this.currentBatchIndex + this.batchSize})`);
