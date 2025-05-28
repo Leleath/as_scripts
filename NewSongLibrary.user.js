@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.7.9
+// @version      0.8
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -17,7 +17,8 @@
 
 'use strict';
 
-const $ = unsafeWindow.jQuery || window.jQuery;
+const globalObj = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
+const $ = globalObj.jQuery || window.jQuery;
 
 GM_addStyle(`
     .svg-icon {
@@ -529,7 +530,7 @@ class AudioPlayerClass {
         if (this.playlist[index].audio == null) {
             const annSongId = this.playlist[index].annSongId;
 
-            unsafeWindow[socketName]._socket.emit("command", {
+            globalObj[socketName]._socket.emit("command", {
                 type: "library",
                 command: "get song extended info",
                 data: {
@@ -730,7 +731,7 @@ class NewSongLibrary {
 
         $('#elNSLFilterForm').on('submit', (e) => this.handleFilterForm(e));
 
-        unsafeWindow[socketName]._socket.addEventListener("command", this.handleSocketCommand);
+        globalObj[socketName]._socket.addEventListener("command", this.handleSocketCommand);
     }
 
     handleSocketCommand = (event) => {
@@ -759,7 +760,7 @@ class NewSongLibrary {
                     ])
                 );
 
-                unsafeWindow[socketName]._socket.emit("command", {
+                globalObj[socketName]._socket.emit("command", {
                     type: "library",
                     command: "get player status list",
                 });
@@ -814,7 +815,7 @@ class NewSongLibrary {
             this.artistMap = libraryMasterList.artistMap;
             this.groupMap = libraryMasterList.groupMap;
 
-            unsafeWindow[socketName]._socket.emit("command", {
+            globalObj[socketName]._socket.emit("command", {
                 type: "library",
                 command: "get anime status list",
             });
@@ -1105,12 +1106,12 @@ class NewSongLibrary {
         this.tempCallback = callback;
         this.active = true;
 
-        this.originalHandler = unsafeWindow[socketName]._socket.listeners("command")[0];
+        this.originalHandler = globalObj[socketName]._socket.listeners("command")[0];
 
         this.listners = [];
         this.listners.push(
-            unsafeWindow[socketName].listners['get anime status list'][0],
-            unsafeWindow[socketName].listners['get player status list'][0]
+            globalObj[socketName].listners['get anime status list'][0],
+            globalObj[socketName].listners['get player status list'][0]
         )
         this.listners.forEach(listener => listener.unbindListener())
 
@@ -1132,7 +1133,7 @@ function setupNewSongLibrary() {
     const newSongLibrary = new NewSongLibrary();
     newSongLibrary.setup();
 
-    unsafeWindow[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
+    globalObj[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
 }
 
 const waitForInitialLoad = () => {
