@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.8.3
+// @version      0.8.5
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -17,7 +17,7 @@
 
 'use strict';
 
-const version = '0.8.2'
+const version = '0.8.5'
 
 const globalObj = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 const $ = globalObj.jQuery || window.jQuery;
