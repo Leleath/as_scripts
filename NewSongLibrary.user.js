@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.8.1
+// @version      0.8.2
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -17,7 +17,7 @@
 
 'use strict';
 
-const version = '0.8.1'
+const version = '0.8.2'
 
 const globalObj = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 const $ = globalObj.jQuery || window.jQuery;
@@ -118,7 +118,7 @@ GM_addStyle(`
     }
     .elNSLSongRow {
         display: grid;
-        grid-template-columns: 50px 1fr 30px;
+        grid-template-columns: 50px 1fr 30px 30px;
         gap: 4px;
     }
     .elNSLSongAnimeNameMain {
@@ -154,6 +154,14 @@ GM_addStyle(`
     .elNSLSongArtist {
         color: lightgray;
     }
+    .elNSLSongInfo {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .elNSLSongInfoButton:hover {
+        cursor:pointer;
+    }
     .elNSLSongPlay {
         display: flex;
         justify-content: center;
@@ -161,6 +169,42 @@ GM_addStyle(`
     }
     .elNSLSongPlayButton:hover {
         cursor:pointer;
+    }
+    .elNSLSongAnimeNameMain {
+        font-size: 18px;
+    }
+    .elNSLSongAnimeNameSecond {
+        color: gray;
+        font-size: 14px;
+    }
+
+    .elNSLModalVideo {
+        width: 100%;
+    }
+    .elNSLModalButtonsRow {
+        display: flex;
+        width: 100%;
+        justify-content: space-between;
+        margin-bottom: 4px;
+    }
+    .elNSLModalVideoPrevButton svg, .elNSLModalVideoNextButton svg {
+        width: 2em;
+        height: 2em;
+    }
+    .elNSLModalSongAnimeNameMain {
+        font-size: 1em;
+    }
+    .elNSLModalSongAnimeNameSecond {
+        font-size: 0.8em;
+        color: darkgray;
+    }
+    .elNSLModalSongType {
+        font-size: 0.8em;
+        color: darkgray;
+    }
+    .elNSLModalSongNameArtist {
+        font-size: 1.2em;
+        color: lightgray;
     }
 
     .elNSLAudioPlayer {
@@ -419,6 +463,34 @@ const htmlContent = `
                 </div>
             </div>
         </div>
+        
+        <div class="modal fade" id="elNSLModal" tabindex="-1" role="dialog" style="display: none;">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">×</span>
+                        </button>
+                        <h2 class="modal-title">Song Info</h2>
+                    </div>
+                    <div class="modal-body">
+                        <div class="elNSLModalButtonsRow">
+                            <a class="elNSLModalVideoPrevButton" id="elNSLModalVideoPrevButton" onclick="viewChanger.__controllers.newSongLibrary.setIndexModal({songIndexPrev})"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></a>
+                            <a class="elNSLModalVideoNextButton" id="elNSLModalVideoNextButton" onclick="viewChanger.__controllers.newSongLibrary.setIndexModal({songIndexNext})"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"/></svg></a>
+                        </div>
+                        <video class="elNSLModalVideo" id="elNSLModalVideo" autoplay controls>
+                            Your browser does not support the video tag.
+                        </video>
+
+                        <div id="elNSLModalSongNameArtist"></div>
+                        <div id="elNSLModalSongAnime"></div>
+                        <div id="elNSLModalSongType"></div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <script type="text/template" id="elNSLSongEntryTemplate">
             <div class="elSongEntry elNSLSongEntry" data-song-id="{songId}">
                 <div class="elNSLSongRow">
@@ -430,6 +502,10 @@ const htmlContent = `
                     <div>
                         {animeName}
                         <div class="elNSLSongName">{songName} - <span class="elNSLSongArtist">{songArtist}</span> {playerStatus}</div>
+                    </div>
+
+                    <div class="elNSLSongInfo">
+                        <a class="elNSLSongInfoButton" onclick="viewChanger.__controllers.newSongLibrary.showModal({songIndex})"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/></svg></a>
                     </div>
 
                     <div class="elNSLSongPlay">
@@ -732,7 +808,12 @@ class NewSongLibrary {
         this.$view = $("#newSongLibraryPage");
 
         $('#elNSLFilterForm').on('submit', (e) => this.handleFilterForm(e));
-
+  
+        $("#elNSLModal").on('hide.bs.modal', function(){
+            $("#elNSLModalVideo")[0].pause();
+            $("#elNSLModalVideo")[0].src = '';
+        });
+        
         globalObj[socketName]._socket.addEventListener("command", this.handleSocketCommand);
     }
 
@@ -749,7 +830,11 @@ class NewSongLibrary {
                     this.artistMap[this.audioPlayer.playlist[index].songArtistId].name :
                     this.groupMap[this.audioPlayer.playlist[index].songGroupId].name;
 
-                this.audioPlayer.loadTrack(index, songArtist, song.fileName);
+                if ($('#elNSLModal').hasClass('in')) {
+                    this.updateModal(index, song);
+                } else {
+                    this.audioPlayer.loadTrack(index, songArtist, song.fileName);
+                }
             }
             if (event.command === 'get anime status list') {
                 this.animeMap = Object.fromEntries(
@@ -1102,6 +1187,67 @@ class NewSongLibrary {
 
             this.loaded = true;
         }
+    }
+
+    updateModal(index, songData) {
+        const song = this.sortedSongsData[index];
+
+        const animeName = song.mainNames.JA
+            ? song.mainNames.EN && song.mainNames.JA !== song.mainNames.EN
+                ? `<div class="elNSLModalSongAnimeNameMain">${song.mainNames.JA} <span class="elNSLModalSongAnimeNameSecond">${song.mainNames.EN}</span></div>`
+                : `<div class="elNSLModalSongAnimeNameMain">${song.mainNames.JA}</div>`
+            : `<div class="elNSLModalSongAnimeNameMain">${song.mainNames.EN}</div>` || '';
+
+        const songArtist = song.songArtistId
+            ? this.artistMap[song.songArtistId].name
+            : this.groupMap[song.songGroupId].name;
+
+        let songType;
+        let songTypeFull = song.songNumber == 0 ? '' : song.songNumber;
+        if (song.rebroadcast) songTypeFull += ' R';
+        if (song.dub) songTypeFull += ' D';
+        switch (song.songType) {
+            case 1: songType = `<div class="elNSLModalSongType">Opening ${songTypeFull}</div>`; break;
+            case 2: songType = `<div class="elNSLModalSongType">Ending ${songTypeFull}</div>`; break;
+            default: songType = `<div class="elNSLModalSongType">Insert ${songTypeFull}</div>`;
+        }
+
+        const videoSrc = '720' in songData.fileNameMap ? songData.fileNameMap['720'] : '480' in songData.fileNameMap ? songData.fileNameMap['480'] : null;
+
+        $('#elNSLModalVideo')[0].src = `https://naedist.animemusicquiz.com/${videoSrc}`;
+        $('#elNSLModalSongNameArtist').html(`<div class="elNSLModalSongNameArtist">${song.name} - ${songArtist}</div>`)
+        $('#elNSLModalSongAnime').html(animeName)
+        $('#elNSLModalSongType').html(songType)
+        $('#elNSLModalVideoPrevButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.setIndexModal(${index - 1})`)
+        $('#elNSLModalVideoNextButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.setIndexModal(${index + 1})`)
+    }
+
+    showModal(index) {
+        const annSongId = this.sortedSongsData[index].annSongId;
+
+        globalObj[socketName]._socket.emit("command", {
+            type: "library",
+            command: "get song extended info",
+            data: {
+                annSongId,
+                includeFileNames: true
+            },
+        });
+                    
+        $('#elNSLModal').modal("show");
+    }
+
+    setIndexModal(index) {
+        const annSongId = this.sortedSongsData[index].annSongId;
+
+        globalObj[socketName]._socket.emit("command", {
+            type: "library",
+            command: "get song extended info",
+            data: {
+                annSongId,
+                includeFileNames: true
+            },
+        });
     }
 
     openView(callback) {
