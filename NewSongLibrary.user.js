@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.8.2
+// @version      0.8.3
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -808,13 +808,15 @@ class NewSongLibrary {
         this.$view = $("#newSongLibraryPage");
 
         $('#elNSLFilterForm').on('submit', (e) => this.handleFilterForm(e));
-  
-        $("#elNSLModal").on('hide.bs.modal', function(){
+
+        $("#elNSLModal").on('hide.bs.modal', function () {
             $("#elNSLModalVideo")[0].pause();
             $("#elNSLModalVideo")[0].src = '';
         });
-        
+
         globalObj[socketName]._socket.addEventListener("command", this.handleSocketCommand);
+
+        this.getFirstData();
     }
 
     handleSocketCommand = (event) => {
@@ -865,6 +867,8 @@ class NewSongLibrary {
                     ])
                 );
 
+                this.renderSongList();
+
                 this.combineLists();
             }
         }
@@ -891,6 +895,17 @@ class NewSongLibrary {
                 }
             });
         });
+    }
+
+    async getFirstData() {
+        const libraryMasterList = await this.fetchWithGM();
+
+        this.animeMap = libraryMasterList.animeMap;
+        this.songMap = libraryMasterList.songMap;
+        this.artistMap = libraryMasterList.artistMap;
+        this.groupMap = libraryMasterList.groupMap;
+
+        this.combineLists();
     }
 
     async getLibraryMasterList() {
@@ -942,8 +957,6 @@ class NewSongLibrary {
                     : []
             );
         });
-
-        this.renderSongList();
     }
 
     handleFilterForm(e) {
@@ -1233,7 +1246,7 @@ class NewSongLibrary {
                 includeFileNames: true
             },
         });
-                    
+
         $('#elNSLModal').modal("show");
     }
 
@@ -1248,6 +1261,34 @@ class NewSongLibrary {
                 includeFileNames: true
             },
         });
+    }
+
+    answerHandle(event) {
+        const { annId, songName, artistInfo } = event.songInfo;
+
+        const songArtistGroupId = 'artistId' in artistInfo ? artistInfo.artistId : artistInfo.groupId;
+
+        const eventSongIndex = this.allSongs.findIndex(item => {
+            const itemArtistId = item.songArtistId !== null ? item.songArtistId : item.songGroupId;
+
+            return item.annId == annId &&
+                songArtistGroupId == itemArtistId &&
+                item.name == songName;
+        });
+        const eventSongId = this.allSongs[eventSongIndex].songId;
+
+        const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
+
+        function checkForElement() {
+            const $element = $('#qpSongType');
+            if ($element.length) {
+                $('#qpSongType').append(`<div>Saved <input type="checkbox" onchange="viewChanger.__controllers.newSongLibrary.changePlayerStatus(this, ${eventSongId})" class="elNSLPlayerStatusCheckbox" ${playerStatusList.includes(eventSongId) && 'checked'} /></div>`)
+                
+                clearInterval(intervalId);
+            }
+        }
+
+        const intervalId = setInterval(checkForElement, 100);
     }
 
     openView(callback) {
@@ -1278,10 +1319,17 @@ class NewSongLibrary {
 }
 
 function setupNewSongLibrary() {
+    // const newSongLibrary = new NewSongLibrary();
+    // newSongLibrary.setup();
+
+    // globalObj[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
+
     const newSongLibrary = new NewSongLibrary();
-    newSongLibrary.setup();
 
     globalObj[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
+    globalObj[viewChangerName].__controllers.newSongLibrary.setup()
+
+    new Listener('answer results', (e) => globalObj[viewChangerName].__controllers.newSongLibrary.answerHandle(e)).bindListener();
 }
 
 const waitForInitialLoad = () => {
