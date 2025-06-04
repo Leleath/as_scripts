@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.8.5
+// @version      0.8.6
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -17,7 +17,7 @@
 
 'use strict';
 
-const version = '0.8.5'
+const version = '0.8.6'
 
 const globalObj = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 const $ = globalObj.jQuery || window.jQuery;
@@ -791,8 +791,6 @@ class NewSongLibrary {
             notadded: true,
         }
 
-        this.originalHandler;
-
         this.listners = [];
     }
 
@@ -867,9 +865,13 @@ class NewSongLibrary {
                     ])
                 );
 
-                this.renderSongList();
-
                 this.combineLists();
+                this.renderSongList();
+            }
+            if (event.command === 'anime list update result') {
+                this.loaded = false;
+
+                this.getLibraryMasterList();
             }
         }
     }
@@ -1283,7 +1285,7 @@ class NewSongLibrary {
             const $element = $('#qpSongType');
             if ($element.length) {
                 $('#qpSongType').append(`<div>Saved <input type="checkbox" onchange="viewChanger.__controllers.newSongLibrary.changePlayerStatus(this, ${eventSongId})" class="elNSLPlayerStatusCheckbox" ${playerStatusList.includes(eventSongId) && 'checked'} /></div>`)
-                
+
                 clearInterval(intervalId);
             }
         }
@@ -1294,8 +1296,6 @@ class NewSongLibrary {
     openView(callback) {
         this.tempCallback = callback;
         this.active = true;
-
-        this.originalHandler = globalObj[socketName]._socket.listeners("command")[0];
 
         this.listners = [];
         this.listners.push(
