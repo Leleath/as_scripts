@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.8.6
+// @version      0.8.7
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -17,7 +17,7 @@
 
 'use strict';
 
-const version = '0.8.6'
+const version = '0.8.7'
 
 const globalObj = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 const $ = globalObj.jQuery || window.jQuery;
@@ -351,6 +351,20 @@ const htmlContent = `
                         </div>
 
                         <div class="elNSLFormGroup">
+                            <div class="elNSLFormGroupLegend">Search by</div>
+                            <div class="elNSLFormCheckboxGroup">
+                                <select name="searchSelect" class="elNSLFormSelect">
+                                    <option value="searchAll" selected>All</option>
+                                    <option value="searchAnime">Anime</option>
+                                    <option value="searchSong">Name</option>
+                                    <option value="searchArtist">Artist</option>
+                                    <option value="searchComposer">Composer</option>
+                                    <option value="searchArranger">Arranger</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="elNSLFormGroup">
                             <div class="elNSLFormGroupLegend">Sort</div>
                             <div class="elNSLFormCheckboxGroup">
                                 <select name="sort" class="elNSLFormSelect">
@@ -400,6 +414,18 @@ const htmlContent = `
                                 </div>
                             </div>
                         </div>
+
+                        <div class="elNSLFormGroup">
+                            <div class="elNSLFormGroupLegend">Anime Year:</div>
+                            <div class="elNSLFormCheckboxGroup">
+                                <div>
+                                    From <input type="number" value="1900" min="1900" max="2025" class="elNSLFormSearch" name="yearFrom">
+                                </div>
+                                <div>
+                                    From <input type="number" value="2025" min="1900" max="2025"  class="elNSLFormSearch" name="yearTo">
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="elNSLFormGroup">
                             <div class="elNSLFormGroupLegend">Player Status:</div>
@@ -418,6 +444,7 @@ const htmlContent = `
                         </div>
                     </form>
 
+                    <div>Animes count: <span id="elNSLAnimesCount"></span></div>
                     <div>Songs count: <span id="elNSLSongsCount"></span></div>
                 </div>
                 <div class="elEntryContainerInner elNSLEntryContainerInner" id="newLibraryClusterId0"></div>
@@ -778,6 +805,7 @@ class NewSongLibrary {
         this.filterData = {
             search: '',
             sort: 'nameasc',
+            searchSelect: 'searchAll',
             op: true,
             ed: true,
             insert: true,
@@ -789,6 +817,8 @@ class NewSongLibrary {
             other: false,
             added: true,
             notadded: true,
+            yearFrom: 1900,
+            yearTo: 2025,
         }
 
         this.listners = [];
@@ -966,6 +996,7 @@ class NewSongLibrary {
 
         this.filterData = {
             search: e.target.search.value,
+            searchSelect: e.target.searchSelect.value,
             sort: e.target.sort.value,
             op: e.target.op.checked,
             ed: e.target.ed.checked,
@@ -976,6 +1007,8 @@ class NewSongLibrary {
             onhold: e.target.onhold.checked,
             dropped: e.target.dropped.checked,
             other: e.target.other.checked,
+            yearFrom: e.target.yearFrom.value,
+            yearTo: e.target.yearTo.value,
             added: e.target.added.checked,
             notadded: e.target.notadded.checked,
         };
@@ -1007,47 +1040,134 @@ class NewSongLibrary {
                 const animeNameEN = song.mainNames.EN?.toLowerCase() || '';
                 const animeNames = song.names ? song.names.map(animeName => animeName.name.toLowerCase()) : [];
 
-                const songArtistGroup = song.songArtistId ? this.artistMap[song.songArtistId] : this.groupMap[song.songGroupId];
-                const songArtistGroupName = songArtistGroup?.name?.toLowerCase() ?? '';
-                const songArtistGroupArtistsNames = songArtistGroup?.artistMembers
-                    ?.map(member => this.artistMap[member]?.name?.toLowerCase())
-                    ?.filter(Boolean) || [];
-                const songArtistGroupGroupsNames = songArtistGroup?.groupMembers
-                    ?.map(member => this.groupMap[member]?.name?.toLowerCase())
-                    ?.filter(Boolean) || [];
+                let songArtistNames = [];
+                let songComposerNames = [];
+                let songArrangerNames = [];
 
-                const composerArtistGroup = song.composerArtistId ? this.artistMap[song.composerArtistId] : this.groupMap[song.composerGroupId];
-                const composerArtistGroupName = composerArtistGroup?.name?.toLowerCase() ?? '';
-                const composerArtistGroupArtistsNames = composerArtistGroup?.artistMembers
-                    ?.map(member => this.artistMap[member]?.name?.toLowerCase())
-                    ?.filter(Boolean) || [];
-                const composerArtistGroupGroupsNames = composerArtistGroup?.groupMembers
-                    ?.map(member => this.groupMap[member]?.name?.toLowerCase())
-                    ?.filter(Boolean) || [];
+                [
+                    'songArtistId',
+                    'songGroupId',
+                    'composerArtistId',
+                    'composerGroupId',
+                    'arrangerArtistId',
+                    'arrangerGroupId',
+                ].forEach((field) => {
+                    const id = song[field];
+                    if (id === null) return;
 
-                const arrangerArtistGroup = song.arrangerArtistId ? this.artistMap[song.arrangerArtistId] : this.groupMap[song.arrangerGroupId];
-                const arrangerArtistGroupName = arrangerArtistGroup?.name?.toLowerCase() ?? '';
-                const arrangerArtistGroupArtistsNames = arrangerArtistGroup?.artistMembers
-                    ?.map(member => this.artistMap[member]?.name?.toLowerCase())
-                    ?.filter(Boolean) || [];
-                const arrangerArtistGroupGroupsNames = arrangerArtistGroup?.groupMembers
-                    ?.map(member => this.groupMap[member]?.name?.toLowerCase())
-                    ?.filter(Boolean) || [];
+                    const isArtistField = field.toLowerCase().includes("artist");
 
-                if (!songName.includes(searchTerm) &&
-                    !animeNameJA.includes(searchTerm) &&
-                    !animeNameEN.includes(searchTerm) &&
-                    !this.isInSong(animeNames, searchTerm) &&
-                    !songArtistGroupName.includes(searchTerm) &&
-                    !this.isInSong(songArtistGroupArtistsNames, searchTerm) &&
-                    !this.isInSong(songArtistGroupGroupsNames, searchTerm) &&
-                    !composerArtistGroupName.includes(searchTerm) &&
-                    !this.isInSong(composerArtistGroupArtistsNames, searchTerm) &&
-                    !this.isInSong(composerArtistGroupGroupsNames, searchTerm) &&
-                    !arrangerArtistGroupName.includes(searchTerm) &&
-                    !this.isInSong(arrangerArtistGroupArtistsNames, searchTerm) &&
-                    !this.isInSong(arrangerArtistGroupGroupsNames, searchTerm)) {
-                    return false;
+                    const isSongArtistField = field.toLowerCase().includes("song");
+                    const isSongComposerField = field.toLowerCase().includes("composer");
+                    const isSongArrangerField = field.toLowerCase().includes("arranger");
+
+                    if (isArtistField) {
+                        const artist = this.artistMap[id];
+                        if (!artist) return;
+
+                        if (isSongArtistField) songArtistNames.push(artist.name.toLowerCase());
+                        else if (isSongComposerField) songComposerNames.push(artist.name.toLowerCase());
+                        else if (isSongArrangerField) songArrangerNames.push(artist.name.toLowerCase());
+
+                        artist.altNameLinks?.forEach(altNameLink => {
+                            const altArtist = this.artistMap[altNameLink];
+                            if (altArtist) {
+                                if (isSongArtistField) songArtistNames.push(altArtist.name.toLowerCase());
+                                else if (isSongComposerField) songComposerNames.push(altArtist.name.toLowerCase());
+                                else if (isSongArrangerField) songArrangerNames.push(altArtist.name.toLowerCase());
+                            }
+                        });
+                    } else {
+                        const group = this.groupMap[id];
+                        if (!group) return;
+
+                        group.artistMembers?.forEach(member => {
+                            const artist = this.artistMap[member];
+                            if (artist) {
+                                if (isSongArtistField) songArtistNames.push(artist.name.toLowerCase());
+                                else if (isSongComposerField) songComposerNames.push(artist.name.toLowerCase());
+                                else if (isSongArrangerField) songArrangerNames.push(artist.name.toLowerCase());
+
+                                artist.altNameLinks?.forEach(altNameLink => {
+                                    const altArtist = this.artistMap[altNameLink];
+                                    if (altArtist) {
+                                        if (isSongArtistField) songArtistNames.push(altArtist.name.toLowerCase());
+                                        else if (isSongComposerField) songComposerNames.push(altArtist.name.toLowerCase());
+                                        else if (isSongArrangerField) songArrangerNames.push(altArtist.name.toLowerCase());
+                                    }
+                                });
+                            }
+                        });
+
+                        group.groupMembers?.forEach(groupMember => {
+                            const altGroup = this.groupMap[groupMember];
+                            if (altGroup) {
+                                if (isSongArtistField) songArtistNames.push(altGroup.name.toLowerCase());
+                                else if (isSongComposerField) songComposerNames.push(altGroup.name.toLowerCase());
+                                else if (isSongArrangerField) songArrangerNames.push(altGroup.name.toLowerCase());
+                            }
+                        });
+
+                        group.altNameLinks?.forEach(altNameLink => {
+                            const altGroup = this.groupMap[altNameLink];
+                            if (altGroup) {
+                                if (isSongArtistField) songArtistNames.push(altGroup.name.toLowerCase());
+                                else if (isSongComposerField) songComposerNames.push(altGroup.name.toLowerCase());
+                                else if (isSongArrangerField) songArrangerNames.push(altGroup.name.toLowerCase());
+                            }
+                        });
+                    }
+                });
+
+                switch (this.filterData.searchSelect) {
+                    case 'searchAll':
+                        if (
+                            !songName.includes(searchTerm) &&
+                            !animeNameJA.includes(searchTerm) &&
+                            !animeNameEN.includes(searchTerm) &&
+                            !this.isInSong(animeNames, searchTerm) &&
+                            !this.isInSong(songArtistNames, searchTerm)
+                        ) {
+                            return false;
+                        }
+                        break;
+                    case 'searchAnime':
+                        if (
+                            !animeNameJA.includes(searchTerm) &&
+                            !animeNameEN.includes(searchTerm) &&
+                            !this.isInSong(animeNames, searchTerm)
+                        ) {
+                            return false;
+                        }
+                        break;
+                    case 'searchSong':
+                        if (
+                            !songName.includes(searchTerm)
+                        ) {
+                            return false;
+                        }
+                        break;
+                    case 'searchArtist':
+                        if (
+                            !this.isInSong(songArtistNames, searchTerm)
+                        ) {
+                            return false;
+                        }
+                        break;
+                    case 'searchComposer':
+                        if (
+                            !this.isInSong(songComposerNames, searchTerm)
+                        ) {
+                            return false;
+                        }
+                        break;
+                    case 'searchArranger':
+                        if (
+                            !this.isInSong(songArrangerNames, searchTerm)
+                        ) {
+                            return false;
+                        }
+                        break;
                 }
             }
 
@@ -1066,6 +1186,10 @@ class NewSongLibrary {
                 case 2: if (!this.filterData.ed) return false; break;
                 case 3: if (!this.filterData.insert) return false; break;
                 default: return false;
+            }
+
+            if (!(song.year >= this.filterData.yearFrom && song.year <= this.filterData.yearTo)) {
+                return false;
             }
 
             return true;
@@ -1195,6 +1319,8 @@ class NewSongLibrary {
 
         const songsCount = this.sortedSongsData.length;
         $('#elNSLSongsCount').html(songsCount)
+        const animesCount = [...new Set(this.sortedSongsData.map(anime => anime.annId))].length;
+        $('#elNSLAnimesCount').html(animesCount)
 
         if (!this.loaded) {
             this.tempCallback();
@@ -1319,11 +1445,6 @@ class NewSongLibrary {
 }
 
 function setupNewSongLibrary() {
-    // const newSongLibrary = new NewSongLibrary();
-    // newSongLibrary.setup();
-
-    // globalObj[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
-
     const newSongLibrary = new NewSongLibrary();
 
     globalObj[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
