@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.8.7
+// @version      0.9
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -17,7 +17,7 @@
 
 'use strict';
 
-const version = '0.8.7'
+const version = '0.9'
 
 const globalObj = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 const $ = globalObj.jQuery || window.jQuery;
@@ -191,20 +191,32 @@ GM_addStyle(`
         width: 2em;
         height: 2em;
     }
-    .elNSLModalSongAnimeNameMain {
-        font-size: 1em;
-    }
     .elNSLModalSongAnimeNameSecond {
-        font-size: 0.8em;
+        font-size: 1em;
         color: darkgray;
     }
     .elNSLModalSongType {
-        font-size: 0.8em;
+        font-size: 0.6em;
         color: darkgray;
     }
-    .elNSLModalSongNameArtist {
+    .elNSLModalSongAnimePanel {
+        margin-bottom: 6px;
+    }
+    .elNSLModalSongName {
         font-size: 1.2em;
-        color: lightgray;
+    }
+    .elNSLModalSongArtistTitle {
+        font-size: 1.2em;
+    }
+    .elNSLModalSongNamePanel {
+        margin-bottom: 6px;
+    }
+    .elNSLModalSongComposerTitle {
+        font-size: 1.2em;
+    }
+    .elNSLModalSongArrangerTitle {
+        font-size: 1.2em;
+        margin-bottom: 6px;
     }
 
     .elNSLAudioPlayer {
@@ -492,13 +504,13 @@ const htmlContent = `
         </div>
         
         <div class="modal fade" id="elNSLModal" tabindex="-1" role="dialog" style="display: none;">
-            <div class="modal-dialog" role="document">
+            <div class="modal-dialog modal-lg" role="document">
                 <div class="modal-content">
                     <div class="modal-header">
                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                             <span aria-hidden="true">×</span>
                         </button>
-                        <h2 class="modal-title">Song Info</h2>
+                        <h3 class="modal-title"><span class="elNSLModalSongAnimeJP"></span></h3>
                     </div>
                     <div class="modal-body">
                         <div class="elNSLModalButtonsRow">
@@ -509,9 +521,11 @@ const htmlContent = `
                             Your browser does not support the video tag.
                         </video>
 
-                        <div id="elNSLModalSongNameArtist"></div>
-                        <div id="elNSLModalSongAnime"></div>
-                        <div id="elNSLModalSongType"></div>
+                        <div class="elNSLModalSongAnimePanel"><span class="elNSLModalSongAnimeEN"></span></div>
+                        <div class="elNSLModalSongNamePanel"><span class="elNSLModalSongName"></span> - <span class="elNSLModalSongArtist"></span></div>
+                        <div class="elNSLModalSongComposerTitle">Composer: <span class="elNSLModalSongComposer"></span></div>
+                        <div class="elNSLModalSongArrangerTitle">Arranger: <span class="elNSLModalSongArranger"></span></div>
+                        <div class="elNSLModalSongDifficultyTitle">Difficulty: <span class="elNSLModalSongDifficulty"></span></div>
                         
                     </div>
                 </div>
@@ -522,13 +536,13 @@ const htmlContent = `
             <div class="elSongEntry elNSLSongEntry" data-song-id="{songId}">
                 <div class="elNSLSongRow">
                     <div class="elNSLSongTypeAnimeStatusRow">
-                        {songType}
-                        {animeStatus}
+                        <span class="elSongSongType">{songType}</span>
+                        <span class="elSongAnimeStatus">{animeStatus}</span>
                     </div>
 
                     <div>
-                        {animeName}
-                        <div class="elNSLSongName">{songName} - <span class="elNSLSongArtist">{songArtist}</span> {playerStatus}</div>
+                        <span class="elSongAnimeName">{animeName}</span>
+                        <div class="elNSLSongName"><span class="elNSLSongSongName">{songName}</span> - <span class="elNSLSongSongArtist">{songArtist}</span> <span class="elSongPlayerStatus">{playerStatus}</span></div>
                     </div>
 
                     <div class="elNSLSongInfo">
@@ -799,6 +813,7 @@ class NewSongLibrary {
         this.groupMap;
         this.allSongs;
         this.audioPlayer;
+        this.artistHover;
         this.currentPageIndex = 0;
         this.currentBatchIndex = 0;
         this.batchSize = 100;
@@ -848,7 +863,7 @@ class NewSongLibrary {
     }
 
     handleSocketCommand = (event) => {
-        console.log(JSON.stringify(event))
+        console.log(event)
 
         if (this.active) {
             if (event.command === 'get song extended info') {
@@ -1126,7 +1141,9 @@ class NewSongLibrary {
                             !animeNameJA.includes(searchTerm) &&
                             !animeNameEN.includes(searchTerm) &&
                             !this.isInSong(animeNames, searchTerm) &&
-                            !this.isInSong(songArtistNames, searchTerm)
+                            !this.isInSong(songArtistNames, searchTerm) &&
+                            !this.isInSong(songComposerNames, searchTerm) &&
+                            !this.isInSong(songArrangerNames, searchTerm)
                         ) {
                             return false;
                         }
@@ -1244,6 +1261,8 @@ class NewSongLibrary {
         pagination.clone().appendTo(fragment);
 
         for (let i = this.currentBatchIndex; i < endIndex; i++) {
+            const template = $(templateHtml);
+
             const song = this.sortedSongsData[i];
 
             const animeName = song.mainNames.JA
@@ -1280,15 +1299,22 @@ class NewSongLibrary {
 
             const playerStatus = song.playerStatus == 1 ? 'Like' : song.playerStatus == 2 ? 'Dislike' : ''
 
-            fragment.append(templateHtml
-                .replace(/\{animeName\}/g, animeName)
-                .replace(/\{songName\}/g, song.name)
-                .replace(/\{songArtist\}/g, songArtist?.name || '')
-                .replace(/\{songType\}/g, songType)
-                .replace(/\{animeStatus\}/g, animeStatus)
-                .replace(/\{playerStatus\}/g, playerStatus)
-                .replace(/\{songId\}/g, song.songId)
-                .replace(/\{songIndex\}/g, i));
+            const cacheSong = libraryCacheHandler.songEntryMap[song.songId]
+
+            const artistContainer = template.find('.elNSLSongSongArtist');
+            new ArtistHover(cacheSong.artist, artistContainer, undefined, null, false);
+
+            template.find('.elNSLSongEntry').attr('data-song-id', song.songId);
+            template.find('.elSongSongType').html(songType)
+            template.find('.elSongAnimeStatus').html(animeStatus)
+            template.find('.elSongAnimeName').html(animeName)
+            template.find('.elNSLSongSongName').html(song.name)
+            template.find('.elSongPlayerStatus').html(playerStatus)
+            template.find('.elNSLSongSongArtist').html(songArtist?.name || '')
+            template.find('.elNSLSongInfoButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.showModal(${i})`);
+            template.find('.elNSLSongPlayButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.audioPlayer.loadSong(${i})`);
+
+            fragment.append(template)
         }
 
         pagination.clone().appendTo(fragment);
@@ -1333,32 +1359,56 @@ class NewSongLibrary {
     updateModal(index, songData) {
         const song = this.sortedSongsData[index];
 
-        const animeName = song.mainNames.JA
-            ? song.mainNames.EN && song.mainNames.JA !== song.mainNames.EN
-                ? `<div class="elNSLModalSongAnimeNameMain">${song.mainNames.JA} <span class="elNSLModalSongAnimeNameSecond">${song.mainNames.EN}</span></div>`
-                : `<div class="elNSLModalSongAnimeNameMain">${song.mainNames.JA}</div>`
-            : `<div class="elNSLModalSongAnimeNameMain">${song.mainNames.EN}</div>` || '';
-
-        const songArtist = song.songArtistId
-            ? this.artistMap[song.songArtistId].name
-            : this.groupMap[song.songGroupId].name;
-
         let songType;
         let songTypeFull = song.songNumber == 0 ? '' : song.songNumber;
         if (song.rebroadcast) songTypeFull += ' R';
         if (song.dub) songTypeFull += ' D';
         switch (song.songType) {
-            case 1: songType = `<div class="elNSLModalSongType">Opening ${songTypeFull}</div>`; break;
-            case 2: songType = `<div class="elNSLModalSongType">Ending ${songTypeFull}</div>`; break;
-            default: songType = `<div class="elNSLModalSongType">Insert ${songTypeFull}</div>`;
+            case 1: songType = `Opening ${songTypeFull}`; break;
+            case 2: songType = `Ending ${songTypeFull}`; break;
+            default: songType = `Insert ${songTypeFull}`;
         }
+
+        const animeName = song.mainNames.JA
+            ? song.mainNames.EN && song.mainNames.JA !== song.mainNames.EN
+                // ? `${song.mainNames.JA} <span class="elNSLModalSongType">${songType}</span><div class="elNSLModalSongAnimeNameSecond">${song.mainNames.EN}</div>`
+                ? `${song.mainNames.JA} <span class="elNSLModalSongType">${songType}</span>`
+                : `${song.mainNames.JA} <span class="elNSLModalSongType">${songType}</span>`
+            : `${song.mainNames.EN} <span class="elNSLModalSongType">${songType}</span>` || '';
+
+        const songArtist = song.songArtistId
+            ? this.artistMap[song.songArtistId].name
+            : this.groupMap[song.songGroupId].name;
+
+        const songComposer = song.composerArtistId
+            ? this.artistMap[song.composerArtistId].name
+            : this.groupMap[song.composerGroupId].name;
+
+        const songArranger = song.arrangerArtistId
+            ? this.artistMap[song.arrangerArtistId].name
+            : this.groupMap[song.arrangerGroupId].name;
 
         const videoSrc = '720' in songData.fileNameMap ? songData.fileNameMap['720'] : '480' in songData.fileNameMap ? songData.fileNameMap['480'] : null;
 
         $('#elNSLModalVideo')[0].src = `https://naedist.animemusicquiz.com/${videoSrc}`;
-        $('#elNSLModalSongNameArtist').html(`<div class="elNSLModalSongNameArtist">${song.name} - ${songArtist}</div>`)
-        $('#elNSLModalSongAnime').html(animeName)
-        $('#elNSLModalSongType').html(songType)
+        $('.elNSLModalSongAnimeJP').html(animeName)
+        $('.elNSLModalSongName').html(song.name)
+        $('.elNSLModalSongDifficulty').html(songData.globalPercent)
+
+        const cacheSong = libraryCacheHandler.songEntryMap[song.songId]
+
+        const modalSongArtist = $('.elNSLModalSongArtist');
+        modalSongArtist.html(songArtist);
+        new ArtistHover(cacheSong.artist, modalSongArtist, undefined, null, false);
+
+        const modalSongComposer = $('.elNSLModalSongComposer');
+        modalSongComposer.html(songComposer);
+        new ArtistHover(cacheSong.composer, modalSongComposer, undefined, null, false);
+
+        const modalSongArranger = $('.elNSLModalSongArranger');
+        modalSongArranger.html(songArranger);
+        new ArtistHover(cacheSong.arranger, modalSongArranger, undefined, null, false);
+
         $('#elNSLModalVideoPrevButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.setIndexModal(${index - 1})`)
         $('#elNSLModalVideoNextButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.setIndexModal(${index + 1})`)
     }
@@ -1422,6 +1472,8 @@ class NewSongLibrary {
     openView(callback) {
         this.tempCallback = callback;
         this.active = true;
+
+        libraryCacheHandler.requestCacheUpdate(0)
 
         this.listners = [];
         this.listners.push(
