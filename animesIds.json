@@ -551,6 +551,12 @@
         "anilistId": "21711",
         "kitsuId": "11957"
     },
+    "36883": {
+        "annId": "36883",
+        "malId": "62002",
+        "anilistId": "195703",
+        "kitsuId": null
+    },
     "32781": {
         "annId": "32781",
         "malId": "58957",
@@ -581,6 +587,12 @@
         "anilistId": null,
         "kitsuId": null
     },
+    "35048": {
+        "annId": "35048",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
     "17346": {
         "annId": "17346",
         "malId": null,
@@ -599,11 +611,23 @@
         "anilistId": null,
         "kitsuId": null
     },
+    "31611": {
+        "annId": "31611",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
     "15370": {
         "annId": "15370",
         "malId": "6094",
         "anilistId": "6094",
         "kitsuId": "4423"
+    },
+    "33372": {
+        "annId": "33372",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
     },
     "12112": {
         "annId": "12112",
@@ -640,6 +664,12 @@
         "malId": "1295",
         "anilistId": "1295",
         "kitsuId": "1167"
+    },
+    "36786": {
+        "annId": "36786",
+        "malId": "61925",
+        "anilistId": "195210",
+        "kitsuId": null
     },
     "18418": {
         "annId": "18418",
@@ -1885,8 +1915,8 @@
     },
     "36324": {
         "annId": "36324",
-        "malId": null,
-        "anilistId": null,
+        "malId": "61758",
+        "anilistId": "193699",
         "kitsuId": "49954"
     },
     "2312": {
@@ -2065,8 +2095,8 @@
     },
     "34170": {
         "annId": "34170",
-        "malId": null,
-        "anilistId": null,
+        "malId": "61016",
+        "anilistId": "185539",
         "kitsuId": null
     },
     "24774": {
@@ -5093,6 +5123,12 @@
         "anilistId": "1468",
         "kitsuId": "1314"
     },
+    "36862": {
+        "annId": "36862",
+        "malId": "62004",
+        "anilistId": null,
+        "kitsuId": null
+    },
     "16762": {
         "annId": "16762",
         "malId": "29865",
@@ -5647,7 +5683,7 @@
     },
     "26681": {
         "annId": "26681",
-        "malId": "55231",
+        "malId": null,
         "anilistId": "166062",
         "kitsuId": "47464"
     },
@@ -6125,17 +6161,17 @@
         "anilistId": null,
         "kitsuId": null
     },
-    "36880": {
-        "annId": "36880",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
     "19743": {
         "annId": "19743",
         "malId": "34572",
         "anilistId": "97940",
         "kitsuId": "13209"
+    },
+    "36880": {
+        "annId": "36880",
+        "malId": "61967",
+        "anilistId": "195604",
+        "kitsuId": "50024"
     },
     "18802": {
         "annId": "18802",
@@ -7252,6 +7288,12 @@
         "malId": "4522",
         "anilistId": "4522",
         "kitsuId": "3662"
+    },
+    "28983": {
+        "annId": "28983",
+        "malId": "55640",
+        "anilistId": "169375",
+        "kitsuId": null
     },
     "26323": {
         "annId": "26323",
@@ -8518,6 +8560,12 @@
         "malId": "34525",
         "anilistId": "98519",
         "kitsuId": "13270"
+    },
+    "18001": {
+        "annId": "18001",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
     },
     "24017": {
         "annId": "24017",
@@ -10976,8 +11024,8 @@
     "36864": {
         "annId": "36864",
         "malId": "61990",
-        "anilistId": null,
-        "kitsuId": null
+        "anilistId": "195539",
+        "kitsuId": "50016"
     },
     "1285": {
         "annId": "1285",
@@ -11026,6 +11074,12 @@
         "malId": "7290",
         "anilistId": "7290",
         "kitsuId": "4929"
+    },
+    "37091": {
+        "annId": "37091",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": "50042"
     },
     "1288": {
         "annId": "1288",
@@ -11212,12 +11266,6 @@
         "malId": null,
         "anilistId": null,
         "kitsuId": null
-    },
-    "36881": {
-        "annId": "36881",
-        "malId": null,
-        "anilistId": "195600",
-        "kitsuId": "50023"
     },
     "17723": {
         "annId": "17723",
@@ -11435,11 +11483,17 @@
         "anilistId": null,
         "kitsuId": null
     },
-    "34211": {
-        "annId": "34211",
+    "30869": {
+        "annId": "30869",
         "malId": "57334",
         "anilistId": "171018",
         "kitsuId": "48269"
+    },
+    "34211": {
+        "annId": "34211",
+        "malId": "60543",
+        "anilistId": "185660",
+        "kitsuId": "49425"
     },
     "20490": {
         "annId": "20490",
@@ -11755,9 +11809,9 @@
     },
     "23325": {
         "annId": "23325",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
+        "malId": "34513",
+        "anilistId": "97910",
+        "kitsuId": "13785"
     },
     "19832": {
         "annId": "19832",
@@ -12079,6 +12133,12 @@
     },
     "29545": {
         "annId": "29545",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
+    "32858": {
+        "annId": "32858",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
@@ -14069,17 +14129,17 @@
         "anilistId": "142876",
         "kitsuId": "45615"
     },
-    "35383": {
-        "annId": "35383",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
     "31089": {
         "annId": "31089",
         "malId": "57592",
         "anilistId": "172019",
         "kitsuId": "48342"
+    },
+    "35383": {
+        "annId": "35383",
+        "malId": "61322",
+        "anilistId": "189117",
+        "kitsuId": "49751"
     },
     "22942": {
         "annId": "22942",
@@ -15004,12 +15064,6 @@
         "malId": "38544",
         "anilistId": "104674",
         "kitsuId": "42001"
-    },
-    "31611": {
-        "annId": "31611",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
     },
     "7178": {
         "annId": "7178",
@@ -16577,6 +16631,12 @@
         "anilistId": null,
         "kitsuId": null
     },
+    "37054": {
+        "annId": "37054",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
     "17542": {
         "annId": "17542",
         "malId": null,
@@ -16993,12 +17053,6 @@
     },
     "33057": {
         "annId": "33057",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
-    "36693": {
-        "annId": "36693",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
@@ -17524,12 +17578,6 @@
         "malId": "4298",
         "anilistId": "4298",
         "kitsuId": "3548"
-    },
-    "34251": {
-        "annId": "34251",
-        "malId": "60665",
-        "anilistId": "185965",
-        "kitsuId": "49466"
     },
     "15117": {
         "annId": "15117",
@@ -18657,7 +18705,7 @@
         "annId": "36855",
         "malId": "61973",
         "anilistId": "195496",
-        "kitsuId": null
+        "kitsuId": "50060"
     },
     "16679": {
         "annId": "16679",
@@ -19021,9 +19069,9 @@
     },
     "35302": {
         "annId": "35302",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
+        "malId": "61297",
+        "anilistId": "188753",
+        "kitsuId": "49961"
     },
     "1706": {
         "annId": "1706",
@@ -19352,8 +19400,8 @@
     "36458": {
         "annId": "36458",
         "malId": "61813",
-        "anilistId": null,
-        "kitsuId": null
+        "anilistId": "194213",
+        "kitsuId": "49990"
     },
     "6817": {
         "annId": "6817",
@@ -20477,6 +20525,12 @@
         "anilistId": "268",
         "kitsuId": "243"
     },
+    "37046": {
+        "annId": "37046",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
     "20206": {
         "annId": "20206",
         "malId": "36028",
@@ -20506,6 +20560,12 @@
         "malId": "50528",
         "anilistId": "142343",
         "kitsuId": "45556"
+    },
+    "37047": {
+        "annId": "37047",
+        "malId": "62067",
+        "anilistId": "196115",
+        "kitsuId": "50036"
     },
     "36522": {
         "annId": "36522",
@@ -20666,6 +20726,12 @@
     "15372": {
         "annId": "15372",
         "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
+    "36663": {
+        "annId": "36663",
+        "malId": "61886",
         "anilistId": null,
         "kitsuId": null
     },
@@ -21021,6 +21087,12 @@
         "annId": "32873",
         "malId": "59217",
         "anilistId": "178972",
+        "kitsuId": null
+    },
+    "37027": {
+        "annId": "37027",
+        "malId": "62051",
+        "anilistId": "196017",
         "kitsuId": null
     },
     "17347": {
@@ -21517,12 +21589,6 @@
     },
     "20637": {
         "annId": "20637",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
-    "36663": {
-        "annId": "36663",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
@@ -23301,7 +23367,7 @@
         "annId": "4172",
         "malId": null,
         "anilistId": null,
-        "kitsuId": null
+        "kitsuId": "3417"
     },
     "2049": {
         "annId": "2049",
@@ -24521,6 +24587,12 @@
         "anilistId": "152122",
         "kitsuId": "46268"
     },
+    "37119": {
+        "annId": "37119",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": "50050"
+    },
     "26661": {
         "annId": "26661",
         "malId": "53716",
@@ -25147,9 +25219,9 @@
     },
     "33940": {
         "annId": "33940",
-        "malId": "60260",
-        "anilistId": "184034",
-        "kitsuId": "49898"
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
     },
     "6073": {
         "annId": "6073",
@@ -25733,8 +25805,8 @@
         "anilistId": null,
         "kitsuId": null
     },
-    "36786": {
-        "annId": "36786",
+    "33469": {
+        "annId": "33469",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
@@ -25762,6 +25834,12 @@
         "malId": "509",
         "anilistId": "509",
         "kitsuId": "468"
+    },
+    "37101": {
+        "annId": "37101",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
     },
     "27194": {
         "annId": "27194",
@@ -26081,12 +26159,6 @@
         "anilistId": null,
         "kitsuId": null
     },
-    "34438": {
-        "annId": "34438",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
     "30572": {
         "annId": "30572",
         "malId": "54118",
@@ -26116,6 +26188,12 @@
         "malId": "36963",
         "anilistId": "101169",
         "kitsuId": "42455"
+    },
+    "34438": {
+        "annId": "34438",
+        "malId": "60831",
+        "anilistId": null,
+        "kitsuId": null
     },
     "24049": {
         "annId": "24049",
@@ -29273,20 +29351,14 @@
         "anilistId": null,
         "kitsuId": null
     },
-    "32854": {
-        "annId": "32854",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
     "33144": {
         "annId": "33144",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
     },
-    "26176": {
-        "annId": "26176",
+    "32854": {
+        "annId": "32854",
         "malId": "52588",
         "anilistId": "153288",
         "kitsuId": "46300"
@@ -29740,6 +29812,12 @@
         "malId": "50470",
         "anilistId": "142095",
         "kitsuId": "45530"
+    },
+    "37026": {
+        "annId": "37026",
+        "malId": "62050",
+        "anilistId": "196029",
+        "kitsuId": null
     },
     "23068": {
         "annId": "23068",
@@ -30532,6 +30610,12 @@
         "malId": "27721",
         "anilistId": "20858",
         "kitsuId": "9367"
+    },
+    "36693": {
+        "annId": "36693",
+        "malId": "61897",
+        "anilistId": "194829",
+        "kitsuId": "49995"
     },
     "10765": {
         "annId": "10765",
@@ -31595,12 +31679,6 @@
         "anilistId": "94",
         "kitsuId": "73"
     },
-    "5965": {
-        "annId": "5965",
-        "malId": "1241",
-        "anilistId": "1241",
-        "kitsuId": "1117"
-    },
     "6565": {
         "annId": "6565",
         "malId": "49073",
@@ -32152,12 +32230,6 @@
         "malId": "38000",
         "anilistId": "101922",
         "kitsuId": "41370"
-    },
-    "32858": {
-        "annId": "32858",
-        "malId": "59192",
-        "anilistId": "178788",
-        "kitsuId": "49001"
     },
     "23040": {
         "annId": "23040",
@@ -35881,9 +35953,9 @@
     },
     "32799": {
         "annId": "32799",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
+        "malId": "59005",
+        "anilistId": "177887",
+        "kitsuId": "48942"
     },
     "22547": {
         "annId": "22547",
@@ -37931,6 +38003,12 @@
         "anilistId": "11981",
         "kitsuId": "6638"
     },
+    "24330": {
+        "annId": "24330",
+        "malId": "48820",
+        "anilistId": "133007",
+        "kitsuId": "44451"
+    },
     "24713": {
         "annId": "24713",
         "malId": "48981",
@@ -38353,9 +38431,9 @@
     },
     "24018": {
         "annId": "24018",
-        "malId": "41402",
-        "anilistId": "116338",
-        "kitsuId": "43047"
+        "malId": "49784",
+        "anilistId": "139092",
+        "kitsuId": "45154"
     },
     "376": {
         "annId": "376",
@@ -39065,6 +39143,12 @@
         "anilistId": "10465",
         "kitsuId": "6194"
     },
+    "37025": {
+        "annId": "37025",
+        "malId": "62048",
+        "anilistId": "196012",
+        "kitsuId": "50035"
+    },
     "30445": {
         "annId": "30445",
         "malId": "56975",
@@ -39520,12 +39604,6 @@
         "malId": "13239",
         "anilistId": "13239",
         "kitsuId": "6919"
-    },
-    "36444": {
-        "annId": "36444",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
     },
     "25315": {
         "annId": "25315",
@@ -41522,7 +41600,7 @@
     "34135": {
         "annId": "34135",
         "malId": null,
-        "anilistId": null,
+        "anilistId": "196279",
         "kitsuId": null
     },
     "31170": {
@@ -41593,6 +41671,12 @@
     },
     "4095": {
         "annId": "4095",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
+    "5965": {
+        "annId": "5965",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
@@ -41971,9 +42055,9 @@
     },
     "36842": {
         "annId": "36842",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
+        "malId": "59612",
+        "anilistId": "180332",
+        "kitsuId": "49128"
     },
     "15054": {
         "annId": "15054",
@@ -42125,6 +42209,12 @@
         "anilistId": "101926",
         "kitsuId": "41371"
     },
+    "37024": {
+        "annId": "37024",
+        "malId": "62066",
+        "anilistId": "196230",
+        "kitsuId": null
+    },
     "23066": {
         "annId": "23066",
         "malId": "33546",
@@ -42253,12 +42343,6 @@
     },
     "4540": {
         "annId": "4540",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
-    "36862": {
-        "annId": "36862",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
@@ -42526,6 +42610,12 @@
         "malId": "5907",
         "anilistId": "5907",
         "kitsuId": "4330"
+    },
+    "37100": {
+        "annId": "37100",
+        "malId": "62080",
+        "anilistId": "196219",
+        "kitsuId": "50048"
     },
     "3082": {
         "annId": "3082",
@@ -42991,6 +43081,12 @@
     },
     "34723": {
         "annId": "34723",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
+    "37123": {
+        "annId": "37123",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
@@ -44510,7 +44606,7 @@
     "26144": {
         "annId": "26144",
         "malId": "25059",
-        "anilistId": null,
+        "anilistId": "196240",
         "kitsuId": "9907"
     },
     "4654": {
@@ -45421,9 +45517,9 @@
     },
     "31890": {
         "annId": "31890",
-        "malId": "57969",
-        "anilistId": "174188",
-        "kitsuId": "48476"
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
     },
     "14192": {
         "annId": "14192",
@@ -45505,9 +45601,9 @@
     },
     "32177": {
         "annId": "32177",
-        "malId": "58197",
-        "anilistId": "175124",
-        "kitsuId": "48564"
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
     },
     "22687": {
         "annId": "22687",
@@ -48151,9 +48247,9 @@
     },
     "7436": {
         "annId": "7436",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
+        "malId": "28089",
+        "anilistId": "196062",
+        "kitsuId": "10001"
     },
     "7182": {
         "annId": "7182",
@@ -49715,12 +49811,6 @@
         "anilistId": "8438",
         "kitsuId": "5334"
     },
-    "18745": {
-        "annId": "18745",
-        "malId": "34034",
-        "anilistId": "97634",
-        "kitsuId": "12533"
-    },
     "15491": {
         "annId": "15491",
         "malId": "19291",
@@ -49897,6 +49987,18 @@
     },
     "11496": {
         "annId": "11496",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
+    "18745": {
+        "annId": "18745",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
+    "37127": {
+        "annId": "37127",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
@@ -50873,12 +50975,6 @@
         "anilistId": null,
         "kitsuId": null
     },
-    "24330": {
-        "annId": "24330",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
     "3766": {
         "annId": "3766",
         "malId": "786",
@@ -51035,6 +51131,12 @@
         "anilistId": "3765",
         "kitsuId": "3241"
     },
+    "10284": {
+        "annId": "10284",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
+    },
     "1455": {
         "annId": "1455",
         "malId": "15873",
@@ -51046,12 +51148,6 @@
         "malId": null,
         "anilistId": null,
         "kitsuId": null
-    },
-    "10284": {
-        "annId": "10284",
-        "malId": "5240",
-        "anilistId": "5240",
-        "kitsuId": "4007"
     },
     "12559": {
         "annId": "12559",
@@ -52865,6 +52961,12 @@
         "anilistId": "113254",
         "kitsuId": "46056"
     },
+    "37095": {
+        "annId": "37095",
+        "malId": "62078",
+        "anilistId": "196218",
+        "kitsuId": "50049"
+    },
     "825": {
         "annId": "825",
         "malId": "4318",
@@ -53146,6 +53248,12 @@
         "malId": "23621",
         "anilistId": null,
         "kitsuId": "8529"
+    },
+    "36444": {
+        "annId": "36444",
+        "malId": "34491",
+        "anilistId": null,
+        "kitsuId": null
     },
     "31058": {
         "annId": "31058",
@@ -54772,12 +54880,6 @@
         "malId": "2944",
         "anilistId": null,
         "kitsuId": null
-    },
-    "18001": {
-        "annId": "18001",
-        "malId": "32595",
-        "anilistId": "21608",
-        "kitsuId": "11779"
     },
     "8077": {
         "annId": "8077",
@@ -57320,7 +57422,7 @@
     "25309": {
         "annId": "25309",
         "malId": "50993",
-        "anilistId": null,
+        "anilistId": "195934",
         "kitsuId": "48938"
     },
     "7333": {
@@ -58481,6 +58583,12 @@
         "anilistId": null,
         "kitsuId": null
     },
+    "37061": {
+        "annId": "37061",
+        "malId": "62068",
+        "anilistId": "196144",
+        "kitsuId": "50041"
+    },
     "23176": {
         "annId": "23176",
         "malId": "36623",
@@ -58552,6 +58660,12 @@
         "malId": "10718",
         "anilistId": "10718",
         "kitsuId": "6315"
+    },
+    "34251": {
+        "annId": "34251",
+        "malId": null,
+        "anilistId": null,
+        "kitsuId": null
     },
     "5051": {
         "annId": "5051",
@@ -59596,12 +59710,6 @@
         "malId": "17619",
         "anilistId": "17619",
         "kitsuId": "9634"
-    },
-    "35048": {
-        "annId": "35048",
-        "malId": "61174",
-        "anilistId": "187663",
-        "kitsuId": "49927"
     },
     "2272": {
         "annId": "2272",
@@ -60952,6 +61060,12 @@
         "malId": "1743",
         "anilistId": "1743",
         "kitsuId": "1563"
+    },
+    "37088": {
+        "annId": "37088",
+        "malId": "62076",
+        "anilistId": "196187",
+        "kitsuId": "50040"
     },
     "24335": {
         "annId": "24335",
@@ -63095,6 +63209,12 @@
         "anilistId": "21300",
         "kitsuId": "11344"
     },
+    "33858": {
+        "annId": "33858",
+        "malId": "60200",
+        "anilistId": "185778",
+        "kitsuId": "49996"
+    },
     "2676": {
         "annId": "2676",
         "malId": "5612",
@@ -63247,12 +63367,6 @@
     },
     "2462": {
         "annId": "2462",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
-    "36883": {
-        "annId": "36883",
         "malId": null,
         "anilistId": null,
         "kitsuId": null
@@ -67043,12 +67157,6 @@
         "anilistId": null,
         "kitsuId": null
     },
-    "33858": {
-        "annId": "33858",
-        "malId": null,
-        "anilistId": null,
-        "kitsuId": null
-    },
     "2997": {
         "annId": "2997",
         "malId": "3565",
@@ -69329,12 +69437,6 @@
         "anilistId": null,
         "kitsuId": null
     },
-    "28983": {
-        "annId": "28983",
-        "malId": "55640",
-        "anilistId": "169375",
-        "kitsuId": null
-    },
     "24336": {
         "annId": "24336",
         "malId": null,
@@ -70631,12 +70733,6 @@
         "anilistId": "12789",
         "kitsuId": "6813"
     },
-    "33372": {
-        "annId": "33372",
-        "malId": "59644",
-        "anilistId": "180523",
-        "kitsuId": "49147"
-    },
     "28605": {
         "annId": "28605",
         "malId": null,
@@ -70967,6 +71063,12 @@
         "anilistId": "157553",
         "kitsuId": "46775"
     },
+    "36881": {
+        "annId": "36881",
+        "malId": "62001",
+        "anilistId": "195600",
+        "kitsuId": "50023"
+    },
     "6234": {
         "annId": "6234",
         "malId": "798",
@@ -71012,7 +71114,7 @@
     "36518": {
         "annId": "36518",
         "malId": "61830",
-        "anilistId": null,
+        "anilistId": "194318",
         "kitsuId": null
     },
     "340": {
