@@ -1,10 +1,14 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.9.2
+// @version      0.9.5
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=animemusicquiz.com
+// @connect      github.com
+// @connect      githubusercontent.com
+// @connect      raw.githubusercontent.com
+// @connect      objects.githubusercontent.com
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
@@ -1063,14 +1067,12 @@ class NewSongLibrary {
                     url: "https://raw.githubusercontent.com/Leleath/as_scripts/refs/heads/main/animesIds.json",
                     onload: (response) => {
                         const animesIds = JSON.parse(response.responseText);
-                        // const animesIds = JSON.parse(JSON.stringify(animesIdsJson).replace(/"(\d+)"/g, '$1'));
 
                         this.animeMap = Object.fromEntries(
                             Object.entries(this.animeMap).map(([key, anime]) => [
                                 key,
                                 {
                                     ...anime,
-                                    // animesIds: animesIds[anime.annId]
                                     animesIds: animesIds[anime.annId] ? Object.fromEntries(
                                         Object.entries(animesIds[anime.annId]).map(([k, v]) => [k, v === null ? null : parseInt(v, 10)])
                                     ) : []
@@ -1329,7 +1331,6 @@ class NewSongLibrary {
                 default: songType = `<div class="elNSLSongType elNSLSongTypeOP">INS ${songTypeFull}</div>`;
             }
 
-            // a
             let songCheckbox = $('<input>', {
                 type: 'checkbox',
                 checked: this.storageSave.hasStorageSave(song.songSongId),
@@ -1491,11 +1492,6 @@ class NewSongLibrary {
         const checkForElement = () => {
             const $element = $('#qpSongType');
             if ($element.length) {
-                // $('#qpSongType').append(`<div>Saved <input type="checkbox" onchange="viewChanger.__controllers.newSongLibrary.storageSave.setStorageSave(this, ${eventSongId})" class="elNSLPlayerStatusCheckbox" ${this.storageSave.hasStorageSave(eventSongId) && 'checked'} /></div>`)
-
-                                // <input type="checkbox" name="searchPartialMatch" id="searchPartialMatch" checked>
-                                // <label for="searchPartialMatch">Partial Match</label>
-
                 $element.append(
                     $('<div>').append(
                         $('<label>', {
@@ -1589,6 +1585,4 @@ waitForInitialLoad().then(() => {
 
     globalObj[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
     globalObj[viewChangerName].__controllers.newSongLibrary.setup()
-
-    // new Listener('answer results', (e) => globalObj[viewChangerName].__controllers.newSongLibrary.answerHandle(e)).bindListener();
 });
