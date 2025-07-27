@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.9
+// @version      0.9.2
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -17,10 +17,12 @@
 
 'use strict';
 
-const version = '0.9'
+const version = '0.9.5'
 
 const globalObj = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
 const $ = globalObj.jQuery || window.jQuery;
+const viewChangerName = 'viewChanger';
+const socketName = 'socket';
 
 GM_addStyle(`
     .svg-icon {
@@ -61,6 +63,9 @@ GM_addStyle(`
     .elNSLFormFilter {
         color: white;
     }
+    .elNSLFormGroup {
+        margin-bottom: 6px;
+    }
     .elNSLFormGroupLegend {
         text-align: center;
         font-size: 18px;
@@ -96,6 +101,9 @@ GM_addStyle(`
     .elNSLPaginationChange:only-child {
         margin-right: 0px;
     }
+    .alignCenter {
+        text-align: center;
+    }
     .elNSLSongEntry {
         margin-top: 8px !important;
         padding: 8px !important;
@@ -118,15 +126,27 @@ GM_addStyle(`
     }
     .elNSLSongRow {
         display: grid;
-        grid-template-columns: 50px 1fr 30px 30px;
+        grid-template-columns: 40px 1fr 30px 30px 30px;
+        gap: 4px;
+    }
+    .elNSLFormCheckboxGroupHalf {
+        display: grid;
+        grid-template-columns: 50% 50%;
         gap: 4px;
     }
     .elNSLSongAnimeNameMain {
         font-size: 18px;
     }
+    .elNSLSongAnimeNameMain a {
+        font-size: 12px;
+    }
     .elNSLSongAnimeNameSecond {
         color: gray;
         font-size: 14px;
+    }
+    .elNSLPaginationChange:disabled {
+        color: #cecece;
+        background-color: #545454;
     }
     .elNSLSongTypeAnimeStatusRow {
         display: flex;
@@ -162,6 +182,14 @@ GM_addStyle(`
     .elNSLSongInfoButton:hover {
         cursor:pointer;
     }
+    .elNSLSongSearch {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .elNSLSongSearchButton:hover {
+        cursor:pointer;
+    }
     .elNSLSongPlay {
         display: flex;
         justify-content: center;
@@ -169,13 +197,6 @@ GM_addStyle(`
     }
     .elNSLSongPlayButton:hover {
         cursor:pointer;
-    }
-    .elNSLSongAnimeNameMain {
-        font-size: 18px;
-    }
-    .elNSLSongAnimeNameSecond {
-        color: gray;
-        font-size: 14px;
     }
 
     .elNSLModalVideo {
@@ -190,6 +211,10 @@ GM_addStyle(`
     .elNSLModalVideoPrevButton svg, .elNSLModalVideoNextButton svg {
         width: 2em;
         height: 2em;
+    }
+    .elEntryContainerHead {
+        font-size: 24px;
+        margin-bottom: 6px;
     }
     .elNSLModalSongAnimeNameSecond {
         font-size: 1em;
@@ -357,96 +382,127 @@ const htmlContent = `
             </div>
             <div class="elEntryContainer elNSLEntryContainer">
                 <div class="elEntryContainerInner elNSLEntryContainerInner elNSLFilterContainer">
-                    <form id="elNSLFilterForm" class="elNSLFormFilter">
+                    <div class="elEntryContainerHead alignCenter">Search</div>
+                    <div class="elNSLFormCheckboxGroupHalf alignCenter">
+                        <div>Animes: <span id="elNSLAnimesCount"></span></div>
+                        <div>Songs: <span id="elNSLSongsCount"></span></div>
+                    </div>
+
+                    <form id="elNSLFilterForm" class="elNSLFormFilter">                        
                         <div class="elNSLFormGroup">
+                            <select name="searchSelect" class="elNSLFormSelect">
+                                <option value="searchAll" selected>All</option>
+                                <option value="searchAnime">Anime</option>
+                                <option value="searchSong">Name</option>
+                                <option value="searchArtist">Artist</option>
+                                <option value="searchComposer">Composer</option>
+                                <option value="searchArranger">Arranger</option>
+                            </select>
                             <input class="elNSLFormSearch" type="text" id="search" name="search" placeholder="Type...">
-                        </div>
-
-                        <div class="elNSLFormGroup">
-                            <div class="elNSLFormGroupLegend">Search by</div>
-                            <div class="elNSLFormCheckboxGroup">
-                                <select name="searchSelect" class="elNSLFormSelect">
-                                    <option value="searchAll" selected>All</option>
-                                    <option value="searchAnime">Anime</option>
-                                    <option value="searchSong">Name</option>
-                                    <option value="searchArtist">Artist</option>
-                                    <option value="searchComposer">Composer</option>
-                                    <option value="searchArranger">Arranger</option>
-                                </select>
+                            <div>
+                                <input type="checkbox" name="searchPartialMatch" id="searchPartialMatch" checked>
+                                <label for="searchPartialMatch">Partial Match</label>
                             </div>
-                        </div>
-
-                        <div class="elNSLFormGroup">
-                            <div class="elNSLFormGroupLegend">Sort</div>
-                            <div class="elNSLFormCheckboxGroup">
-                                <select name="sort" class="elNSLFormSelect">
-                                    <option value="nameasc" selected>Name Asc</option>
-                                    <option value="namedesc">Name Desc</option>
-                                    <option value="idasc">annId Asc</option>
-                                    <option value="iddesc">annId Desc</option>
-                                </select>
-                            </div>
+                            <select name="sort" class="elNSLFormSelect">
+                                <option value="nameasc">Name Asc</option>
+                                <option value="namedesc">Name Desc</option>
+                                <option value="idasc" selected>annId Asc</option>
+                                <option value="iddesc">annId Desc</option>
+                            </select>
                         </div>
 
                         <div class="elNSLFormGroup">
                             <div class="elNSLFormGroupLegend">Song Type</div>
                             <div class="elNSLFormCheckboxGroup">
                                 <div>
-                                    <input type="checkbox" name="op" checked> OP
+                                    <input type="checkbox" name="op" id="op" checked>
+                                    <label for="op">Opening</label>
                                 </div>
                                 <div>
-                                    <input type="checkbox" name="ed" checked> ED
+                                    <input type="checkbox" name="ed" id="ed" checked>
+                                    <label for="ed">Ending</label>
                                 </div>
                                 <div>
-                                    <input type="checkbox" name="insert" checked> Insert
+                                    <input type="checkbox" name="insert" id="insert" checked>
+                                    <label for="insert">Insert</label>
                                 </div>
                             </div>
                         </div>
 
                         <div class="elNSLFormGroup">
-                            <div class="elNSLFormGroupLegend">Anime Status:</div>
-                            <div class="elNSLFormCheckboxGroup">
+                            <div class="elNSLFormGroupLegend">Anime Status</div>
+                            <div class="elNSLFormCheckboxGroup elNSLFormCheckboxGroupHalf">
                                 <div>
-                                    <input type="checkbox" name="ptw"> Plan to Watch
+                                    <div>
+                                        <input type="checkbox" name="ptw" id="ptw">
+                                        <label for="ptw">Plan to Watch</label>
+                                    </div>
+                                    <div>
+                                        <input type="checkbox" name="watching" id="watching" checked>
+                                        <label for="watching">Watching</label>
+                                    </div>
+                                    <div>
+                                        <input type="checkbox" name="completed" id="completed" checked>
+                                        <label for="completed">Completed</label>
+                                    </div>
                                 </div>
                                 <div>
-                                    <input type="checkbox" name="watching" checked> Watching
-                                </div>
-                                <div>
-                                    <input type="checkbox" name="completed" checked> Completed
-                                </div>
-                                <div>
-                                    <input type="checkbox" name="onhold"> On Hold
-                                </div>
-                                <div>
-                                    <input type="checkbox" name="dropped"> Dropped
-                                </div>
-                                <div>
-                                    <input type="checkbox" name="other"> Other
+                                    <div>
+                                        <input type="checkbox" name="onhold" id="onhold">
+                                        <label for="onhold">On Hold</label>
+                                    </div>
+                                    <div>
+                                        <input type="checkbox" name="dropped" id="dropped">
+                                        <label for="dropped">Dropped</label>
+                                    </div>
+                                    <div>
+                                        <input type="checkbox" name="other" id="other">
+                                        <label for="other">Other</label>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div class="elNSLFormGroup">
-                            <div class="elNSLFormGroupLegend">Anime Year:</div>
-                            <div class="elNSLFormCheckboxGroup">
+                            <div class="elNSLFormGroupLegend">Anime Year</div>
+                            <div class="elNSLFormCheckboxGroup elNSLFormCheckboxGroupHalf">
                                 <div>
                                     From <input type="number" value="1900" min="1900" max="2025" class="elNSLFormSearch" name="yearFrom">
                                 </div>
                                 <div>
-                                    From <input type="number" value="2025" min="1900" max="2025"  class="elNSLFormSearch" name="yearTo">
+                                    To <input type="number" value="2025" min="1900" max="2025"  class="elNSLFormSearch" name="yearTo">
                                 </div>
                             </div>
                         </div>
                         
                         <div class="elNSLFormGroup">
-                            <div class="elNSLFormGroupLegend">Player Status:</div>
+                            <div class="elNSLFormGroupLegend">Player Status</div>
                             <div class="elNSLFormCheckboxGroup">
                                 <div>
-                                    <input type="checkbox" name="added" checked> Added
+                                    <input type="checkbox" name="added" id="added" checked>
+                                    <label for="added">Added</label>
                                 </div>
                                 <div>
-                                    <input type="checkbox" name="notadded" checked> Not Added
+                                    <input type="checkbox" name="notadded" id="notadded" checked>
+                                    <label for="notadded">Not Added</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="elNSLFormGroup">
+                            <div class="elNSLFormGroupLegend">Other</div>
+                            <div class="elNSLFormCheckboxGroup">
+                                <div>
+                                    <input type="checkbox" name="onesong" id="onesong">
+                                    <label for="onesong">One Song</label>
+                                </div>
+                                <div>
+                                    <input type="checkbox" name="rebroadcast" id="rebroadcast">
+                                    <label for="rebroadcast">Rebroadcast</label>
+                                </div>
+                                <div>
+                                    <input type="checkbox" name="dub" id="dub">
+                                    <label for="dub">Dub</label>
                                 </div>
                             </div>
                         </div>
@@ -455,9 +511,6 @@ const htmlContent = `
                             <button class="elNSLFormSubmit" type="submit">Search</button>
                         </div>
                     </form>
-
-                    <div>Animes count: <span id="elNSLAnimesCount"></span></div>
-                    <div>Songs count: <span id="elNSLSongsCount"></span></div>
                 </div>
                 <div class="elEntryContainerInner elNSLEntryContainerInner" id="newLibraryClusterId0"></div>
             </div>
@@ -513,10 +566,6 @@ const htmlContent = `
                         <h3 class="modal-title"><span class="elNSLModalSongAnimeJP"></span></h3>
                     </div>
                     <div class="modal-body">
-                        <div class="elNSLModalButtonsRow">
-                            <a class="elNSLModalVideoPrevButton" id="elNSLModalVideoPrevButton" onclick="viewChanger.__controllers.newSongLibrary.setIndexModal({songIndexPrev})"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"/></svg></a>
-                            <a class="elNSLModalVideoNextButton" id="elNSLModalVideoNextButton" onclick="viewChanger.__controllers.newSongLibrary.setIndexModal({songIndexNext})"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M438.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-160-160c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L338.8 224 32 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l306.7 0L233.4 393.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0l160-160z"/></svg></a>
-                        </div>
                         <video class="elNSLModalVideo" id="elNSLModalVideo" autoplay controls>
                             Your browser does not support the video tag.
                         </video>
@@ -533,7 +582,7 @@ const htmlContent = `
         </div>
         
         <script type="text/template" id="elNSLSongEntryTemplate">
-            <div class="elSongEntry elNSLSongEntry" data-song-id="{songId}">
+            <div class="elSongEntry elNSLSongEntry">
                 <div class="elNSLSongRow">
                     <div class="elNSLSongTypeAnimeStatusRow">
                         <span class="elSongSongType">{songType}</span>
@@ -545,26 +594,22 @@ const htmlContent = `
                         <div class="elNSLSongName"><span class="elNSLSongSongName">{songName}</span> - <span class="elNSLSongSongArtist">{songArtist}</span> <span class="elSongPlayerStatus">{playerStatus}</span></div>
                     </div>
 
+                    <div class="elNSLSongSearch">
+                        <a class="elNSLSongSearchButton"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg></a>
+                    </div>
+
                     <div class="elNSLSongInfo">
-                        <a class="elNSLSongInfoButton" onclick="viewChanger.__controllers.newSongLibrary.showModal({songIndex})"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/></svg></a>
+                        <a class="elNSLSongInfoButton"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/></svg></a>
                     </div>
 
                     <div class="elNSLSongPlay">
-                        <a class="elNSLSongPlayButton" onclick="viewChanger.__controllers.newSongLibrary.audioPlayer.loadSong({songIndex})"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></a>
+                        <a class="elNSLSongPlayButton"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></a>
                     </div>
                 </div>
             </div>
         </script>
-        <script type="text/template" id="elNSLSongShowMoreTemplate">
-            <div class="elNSLSongShowMore" id="elNSLShowMore">
-                <a class="elNSLSongShowMoreButton" onclick="viewChanger.__controllers.newSongLibrary.renderBatch()">Show More</a>
-            </div>
-        </script>
     </div>
 `;
-
-const viewChangerName = 'viewChanger';
-const socketName = 'socket';
 
 class AudioPlayerClass {
     constructor() {
@@ -635,7 +680,7 @@ class AudioPlayerClass {
 
     checkPlayingSong() {
         if (this.currentTrackIndex !== -1) {
-            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
+            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songSongId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
         }
     }
 
@@ -647,7 +692,7 @@ class AudioPlayerClass {
         }
 
         if (this.playlist[index].audio == null) {
-            const annSongId = this.playlist[index].annSongId;
+            const annSongId = this.playlist[index].songAnnSongId;
 
             globalObj[socketName]._socket.emit("command", {
                 type: "library",
@@ -672,18 +717,18 @@ class AudioPlayerClass {
         this.currentTrackIndex = index;
         const track = this.playlist[index];
 
-        let songType;
         let songTypeFull = track.songNumber == 0 ? '' : ` ${track.songNumber}`;
-        if (track.rebroadcast) songTypeFull += ' R';
-        if (track.dub) songTypeFull += ' D';
+        if (track.songRebroadcast) songTypeFull += ' R';
+        if (track.songDub) songTypeFull += ' D';
+        let songType;
         switch (track.songType) {
             case 1: songType = `Opening${songTypeFull}`; break;
             case 2: songType = `Ending${songTypeFull}`; break;
             default: songType = `Insert${songTypeFull}`;
         }
 
-        this.$songInfoFirstElement.text(`${track.name} - ${track.songArtistString || songArtist}`);
-        this.$songInfoSecondElement.text(`${track.mainNames.JA || track.mainNames.EN} (${songType})`);
+        this.$songInfoFirstElement.text(`${track.songName} - ${track.songArtistString || songArtist}`);
+        this.$songInfoSecondElement.text(`${track.animeMainNames.JA || track.animeMainNames.EN} (${songType})`);
 
         this.audio.src = `https://naedist.animemusicquiz.com/${track.audio || audio}`;
 
@@ -695,7 +740,7 @@ class AudioPlayerClass {
             this.audio.play()
                 .then(() => {
                     this.setPlayButtonIcon(true);
-                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
+                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songSongId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
                 })
         }
 
@@ -717,12 +762,12 @@ class AudioPlayerClass {
         if (this.isPlaying) {
             this.audio.pause();
             this.setPlayButtonIcon(false);
-            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>');
+            $(`[data-song-id="${this.playlist[this.currentTrackIndex].songSongId}"]`).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>');
         } else {
             this.audio.play()
                 .then(() => {
                     this.setPlayButtonIcon(true);
-                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
+                    $(`[data-song-id="${this.playlist[this.currentTrackIndex].songSongId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
                 })
                 .catch(e => {
                     console.error("Playback error:", e);
@@ -802,40 +847,138 @@ class AudioPlayerClass {
     }
 }
 
+class StorageSave {
+    constructor() {
+        this.storageSave = this.get();
+    }
+
+    get() {
+        return JSON.parse(GM_getValue("playerStatusList", "[]"));
+    }
+
+    set() {
+        GM_setValue("playerStatusList", JSON.stringify(this.storageSave));
+    }
+
+    getStorageSave() {
+        return this.storageSave;
+    }
+
+    hasStorageSave(eventSongId) {
+        return this.storageSave.includes(eventSongId);
+    }
+
+    setStorageSave(el, id) {
+        if (el.checked) this.storageSave.push(id)
+        else this.storageSave = this.storageSave.filter(psl => psl !== id)
+
+        this.set();
+    }
+}
+
+class Song {
+    constructor(anime, song) {
+        this.animeAnnId = anime.annId;
+        this.animeCategory = anime.category;
+        this.animeYear = anime.year;
+        this.animeSeasonId = anime.seasonId;
+        this.animeNames = anime.names;
+        this.animeMainNames = anime.mainNames;
+        this.animeSearchNames = anime.searchNames;
+        this.animeStatus = anime.animeStatus;
+        this.animePlayerStatus = anime.playerStatus;
+        this.animeSearchIndex = anime.searchIndex;
+        this.animeAnimesIds = anime.animesIds;
+
+        this.songAnnId = song.annId;
+        this.songAnnSongId = song.annSongId;
+        this.songNumber = song.number;
+        this.songPlayerLikeStatus = song.playerLikeStatus;
+        this.songType = song.type;
+        this.songUploaded = song.uploaded;
+
+        this.animeOneSong = (Object.keys(anime.songMap)).length > 1 ? false : true;
+
+        this.songSongId = song.songEntry.songId;
+        this.songName = song.songEntry.name;
+        this.songSearchNames = song.songEntry.searchNames;
+        this.songArtist = song.songEntry.artist;
+        this.songArtistArtistId = song.songEntry.songArtistId;
+        this.songArtistGroupId = song.songEntry.songGroupId;
+        this.songComposer = song.songEntry.composer;
+        this.songComposerArtistId = song.songEntry.composerArtistId;
+        this.songComposerGroupId = song.songEntry.composerGroupId;
+        this.songArranger = song.songEntry.arranger;
+        this.songArrangerArtistId = song.songEntry.arrangerArtistId;
+        this.songArrangerGroupId = song.songEntry.arrangerGroupId;
+        this.songRebroadcast = song.songEntry.rebroadcast;
+        this.songDub = song.songEntry.dub;
+    }
+}
+
+class Search {
+    constructor() {
+        this.search = '';
+        this.searchPartialMatch = true;
+        this.sort = 'idasc';
+        this.searchSelect = 'searchAll';
+        this.op = true;
+        this.ed = true;
+        this.insert = true;
+        this.ptw = false;
+        this.watching = true;
+        this.completed = true;
+        this.onhold = false;
+        this.dropped = false;
+        this.other = false;
+        this.added = true;
+        this.notadded = true;
+        this.yearFrom = 1900;
+        this.yearTo = 2025;
+        this.onesong = false;
+        this.rebroadcast = false;
+        this.dub = false;
+
+        this.animeId = null;
+    }
+
+    setSearch(e) {
+        this.search = e.target.search.value;
+        this.searchPartialMatch = e.target.searchPartialMatch.checked;
+        this.searchSelect = e.target.searchSelect.value;
+        this.sort = e.target.sort.value;
+        this.op = e.target.op.checked;
+        this.ed = e.target.ed.checked;
+        this.insert = e.target.insert.checked;
+        this.ptw = e.target.ptw.checked;
+        this.watching = e.target.watching.checked;
+        this.completed = e.target.completed.checked;
+        this.onhold = e.target.onhold.checked;
+        this.dropped = e.target.dropped.checked;
+        this.other = e.target.other.checked;
+        this.yearFrom = e.target.yearFrom.value;
+        this.yearTo = e.target.yearTo.value;
+        this.added = e.target.added.checked;
+        this.notadded = e.target.notadded.checked;
+        this.onesong = e.target.onesong.checked;
+        this.rebroadcast = e.target.rebroadcast.checked;
+        this.dub = e.target.dub.checked;
+    }
+}
+
 class NewSongLibrary {
     constructor() {
         this.$view;
-        this.active;
-        this.loaded;
+        this.active = false;
+        this.loaded = false;
         this.animeMap;
-        this.songMap;
-        this.artistMap;
-        this.groupMap;
         this.allSongs;
         this.audioPlayer;
-        this.artistHover;
         this.currentPageIndex = 0;
         this.currentBatchIndex = 0;
         this.batchSize = 100;
-        this.filterData = {
-            search: '',
-            sort: 'nameasc',
-            searchSelect: 'searchAll',
-            op: true,
-            ed: true,
-            insert: true,
-            ptw: false,
-            watching: true,
-            completed: true,
-            onhold: false,
-            dropped: false,
-            other: false,
-            added: true,
-            notadded: true,
-            yearFrom: 1900,
-            yearTo: 2025,
-        }
-
+        this.search = new Search();
+        this.storageSave = new StorageSave();
         this.listners = [];
     }
 
@@ -845,12 +988,15 @@ class NewSongLibrary {
 
         this.audioPlayer = new AudioPlayerClass();
         this.audioPlayer.setup();
-        this.active = false;
-        this.loaded = false;
 
         this.$view = $("#newSongLibraryPage");
 
-        $('#elNSLFilterForm').on('submit', (e) => this.handleFilterForm(e));
+        $('#elNSLFilterForm').on('submit', (e) => {
+            e.preventDefault();
+            this.search.animeId = null;
+            this.search.setSearch(e);
+            this.renderSongList();
+        });
 
         $("#elNSLModal").on('hide.bs.modal', function () {
             $("#elNSLModalVideo")[0].pause();
@@ -859,21 +1005,23 @@ class NewSongLibrary {
 
         globalObj[socketName]._socket.addEventListener("command", this.handleSocketCommand);
 
-        this.getFirstData();
+        this.loadLibrary();
     }
 
     handleSocketCommand = (event) => {
         console.log(event)
 
-        if (this.active) {
+        if (event.command === 'answer results') {
+            this.answerHandle(event.data);
+        }
+
+        if (this.active || !this.loaded) {
             if (event.command === 'get song extended info') {
                 const song = event.data;
 
-                const index = this.audioPlayer.playlist.findIndex(item => item.annSongId == song.annSongId);
+                const index = this.audioPlayer.playlist.findIndex(item => item.songAnnSongId == song.annSongId);
 
-                const songArtist = this.audioPlayer.playlist[index].songArtistId ?
-                    this.artistMap[this.audioPlayer.playlist[index].songArtistId].name :
-                    this.groupMap[this.audioPlayer.playlist[index].songGroupId].name;
+                const songArtist = this.audioPlayer.playlist[index].songArtist.name;
 
                 if ($('#elNSLModal').hasClass('in')) {
                     this.updateModal(index, song);
@@ -905,282 +1053,156 @@ class NewSongLibrary {
                         key,
                         {
                             ...anime,
-                            playerStatus: event.data.statusListMap[key] || 0
+                            playerStatus: this.playerStatusList[key] || 0
                         }
                     ])
                 );
 
-                this.combineLists();
-                this.renderSongList();
+                GM_xmlhttpRequest({
+                    method: "GET",
+                    url: "https://raw.githubusercontent.com/Leleath/as_scripts/refs/heads/main/animesIds.json",
+                    onload: (response) => {
+                        const animesIds = JSON.parse(response.responseText);
+                        // const animesIds = JSON.parse(JSON.stringify(animesIdsJson).replace(/"(\d+)"/g, '$1'));
+
+                        this.animeMap = Object.fromEntries(
+                            Object.entries(this.animeMap).map(([key, anime]) => [
+                                key,
+                                {
+                                    ...anime,
+                                    // animesIds: animesIds[anime.annId]
+                                    animesIds: animesIds[anime.annId] ? Object.fromEntries(
+                                        Object.entries(animesIds[anime.annId]).map(([k, v]) => [k, v === null ? null : parseInt(v, 10)])
+                                    ) : []
+                                }
+                            ])
+                        );
+
+                        this.combineLists();
+
+                        if (this.active) this.renderSongList();
+
+                        this.loaded = true;
+                    },
+                    onerror: (error) => console.log(error)
+                });
             }
             if (event.command === 'anime list update result') {
-                this.loaded = false;
-
                 this.getLibraryMasterList();
             }
         }
     }
 
-    async fetchWithGM() {
-        return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: "GET",
-                url: "https://animemusicquiz.com/libraryMasterList",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                onload: function (response) {
-                    try {
-                        const data = JSON.parse(response.responseText);
-                        resolve(data);
-                    } catch (e) {
-                        reject(e);
-                    }
-                },
-                onerror: function (error) {
-                    reject(error);
-                }
-            });
-        });
-    }
-
-    async getFirstData() {
-        const libraryMasterList = await this.fetchWithGM();
-
-        this.animeMap = libraryMasterList.animeMap;
-        this.songMap = libraryMasterList.songMap;
-        this.artistMap = libraryMasterList.artistMap;
-        this.groupMap = libraryMasterList.groupMap;
-
-        this.combineLists();
-    }
-
     async getLibraryMasterList() {
-        if (!this.loaded) {
-            const libraryMasterList = await this.fetchWithGM();
-
-            this.animeMap = libraryMasterList.animeMap;
-            this.songMap = libraryMasterList.songMap;
-            this.artistMap = libraryMasterList.artistMap;
-            this.groupMap = libraryMasterList.groupMap;
-
-            globalObj[socketName]._socket.emit("command", {
-                type: "library",
-                command: "get anime status list",
-            });
-        } else {
-            this.tempCallback();
-            this.$view.removeClass("hide");
-        }
+        globalObj[socketName]._socket.emit("command", {
+            type: "library",
+            command: "get anime status list",
+        });
     }
 
     combineLists() {
-        this.allSongs = Object.values(this.animeMap).flatMap(anime => {
-            const commonSongData = {
-                annId: anime.annId,
-                category: anime.category,
-                year: anime.year,
-                seasonId: anime.seasonId,
-                names: anime.names,
-                mainNames: anime.mainNames,
-                animeStatus: anime.animeStatus
-            };
-
-            return ['OP', 'ED', 'INS'].flatMap(type =>
-                anime.songLinks[type]
-                    ? Object.values(anime.songLinks[type]).map(songLink => {
-                        const songData = this.songMap[songLink.songId];
-                        if (!songData) return null;
-
-                        return {
-                            ...commonSongData,
-                            annSongId: songLink.annSongId,
-                            songType: songLink.type,
-                            songNumber: songLink.number,
-                            playerStatus: songLink.playerStatus,
-                            ...songData
-                        };
-                    }).filter(Boolean)
-                    : []
-            );
-        });
+        this.allSongs = Object.values(this.animeMap).flatMap(anime => Object.values(anime.songMap).flatMap(song => new Song(anime, song)))
     }
 
-    handleFilterForm(e) {
-        e.preventDefault();
-
-        this.filterData = {
-            search: e.target.search.value,
-            searchSelect: e.target.searchSelect.value,
-            sort: e.target.sort.value,
-            op: e.target.op.checked,
-            ed: e.target.ed.checked,
-            insert: e.target.insert.checked,
-            ptw: e.target.ptw.checked,
-            watching: e.target.watching.checked,
-            completed: e.target.completed.checked,
-            onhold: e.target.onhold.checked,
-            dropped: e.target.dropped.checked,
-            other: e.target.other.checked,
-            yearFrom: e.target.yearFrom.value,
-            yearTo: e.target.yearTo.value,
-            added: e.target.added.checked,
-            notadded: e.target.notadded.checked,
-        };
-
-        this.renderSongList();
-    }
-
-    isInSong(dataArray, searchTerm) {
+    isInSong(dataArray, searchTerm, searchPartialMatch) {
         for (let i = 0; i < dataArray.length; i++) {
-            if (dataArray[i].includes(searchTerm)) return true;
+            if (searchPartialMatch) {
+                if (dataArray[i].includes(searchTerm)) return true;
+            } else {
+                if (dataArray[i] == searchTerm) return true;
+            }
         }
 
         return false;
     }
 
     filterSongs(songsData) {
-        const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
-
         return songsData.filter(song => {
+            if (song.songUploaded == 0) return false;
+
             if (
-                (!this.filterData.added && playerStatusList.includes(song.songId)) ||
-                (!this.filterData.notadded && !playerStatusList.includes(song.songId))
+                (!this.search.added && this.storageSave.hasStorageSave(song.songSongId)) ||
+                (!this.search.notadded && !this.storageSave.hasStorageSave(song.songSongId))
             ) return false;
 
-            if (this.filterData.search !== '') {
-                const searchTerm = this.filterData.search.toLowerCase();
-                const songName = song.name.toLowerCase();
-                const animeNameJA = song.mainNames.JA?.toLowerCase() || '';
-                const animeNameEN = song.mainNames.EN?.toLowerCase() || '';
-                const animeNames = song.names ? song.names.map(animeName => animeName.name.toLowerCase()) : [];
+            if (this.search.animeId) {
+                if (song.animeAnnId !== this.search.animeId) return false
 
-                let songArtistNames = [];
-                let songComposerNames = [];
-                let songArrangerNames = [];
+                return true;
+            }
 
-                [
-                    'songArtistId',
-                    'songGroupId',
-                    'composerArtistId',
-                    'composerGroupId',
-                    'arrangerArtistId',
-                    'arrangerGroupId',
-                ].forEach((field) => {
-                    const id = song[field];
-                    if (id === null) return;
+            if (!this.search.rebroadcast && song.songRebroadcast == 1) return false;
+            if (!this.search.dub && song.songDub == 1) return false;
 
-                    const isArtistField = field.toLowerCase().includes("artist");
+            if (this.search.onesong) {
+                if (!song.animeOneSong) return false
+            }
 
-                    const isSongArtistField = field.toLowerCase().includes("song");
-                    const isSongComposerField = field.toLowerCase().includes("composer");
-                    const isSongArrangerField = field.toLowerCase().includes("arranger");
+            if (this.search.search !== '') {
+                const searchTerm = this.search.search.toLowerCase();
+                const searchPartialMatch = this.search.searchPartialMatch;
 
-                    if (isArtistField) {
-                        const artist = this.artistMap[id];
-                        if (!artist) return;
+                const songName = song.songSearchNames;
+                const animeNames = song.animeSearchNames;
+                const songArtistNames = song.songArtist?.searchNames || [];
+                const songArtistArtistMembersNames = song.songArtist?.artistMembers?.flatMap(group => group.searchNames) || [];
+                const songArtistGroupMembersNames = song.songArtist?.groupMembers?.flatMap(group => group.searchNames) || [];
+                const songComposerNames = song.songComposer?.searchNames || [];
+                const songComposerArtistMembersNames = song.songComposer?.artistMembers?.flatMap(group => group.searchNames) || [];
+                const songComposerGroupMembersNames = song.songComposer?.groupMembers?.flatMap(group => group.searchNames) || [];
+                const songArrangerNames = song.songArranger?.searchNames || [];
+                const songArrangerArtistMembersNames = song.songArranger?.artistMembers?.flatMap(group => group.searchNames) || [];
+                const songArrangerGroupMembersNames = song.songArranger?.groupMembers?.flatMap(group => group.searchNames) || [];
 
-                        if (isSongArtistField) songArtistNames.push(artist.name.toLowerCase());
-                        else if (isSongComposerField) songComposerNames.push(artist.name.toLowerCase());
-                        else if (isSongArrangerField) songArrangerNames.push(artist.name.toLowerCase());
-
-                        artist.altNameLinks?.forEach(altNameLink => {
-                            const altArtist = this.artistMap[altNameLink];
-                            if (altArtist) {
-                                if (isSongArtistField) songArtistNames.push(altArtist.name.toLowerCase());
-                                else if (isSongComposerField) songComposerNames.push(altArtist.name.toLowerCase());
-                                else if (isSongArrangerField) songArrangerNames.push(altArtist.name.toLowerCase());
-                            }
-                        });
-                    } else {
-                        const group = this.groupMap[id];
-                        if (!group) return;
-
-                        group.artistMembers?.forEach(member => {
-                            const artist = this.artistMap[member];
-                            if (artist) {
-                                if (isSongArtistField) songArtistNames.push(artist.name.toLowerCase());
-                                else if (isSongComposerField) songComposerNames.push(artist.name.toLowerCase());
-                                else if (isSongArrangerField) songArrangerNames.push(artist.name.toLowerCase());
-
-                                artist.altNameLinks?.forEach(altNameLink => {
-                                    const altArtist = this.artistMap[altNameLink];
-                                    if (altArtist) {
-                                        if (isSongArtistField) songArtistNames.push(altArtist.name.toLowerCase());
-                                        else if (isSongComposerField) songComposerNames.push(altArtist.name.toLowerCase());
-                                        else if (isSongArrangerField) songArrangerNames.push(altArtist.name.toLowerCase());
-                                    }
-                                });
-                            }
-                        });
-
-                        group.groupMembers?.forEach(groupMember => {
-                            const altGroup = this.groupMap[groupMember];
-                            if (altGroup) {
-                                if (isSongArtistField) songArtistNames.push(altGroup.name.toLowerCase());
-                                else if (isSongComposerField) songComposerNames.push(altGroup.name.toLowerCase());
-                                else if (isSongArrangerField) songArrangerNames.push(altGroup.name.toLowerCase());
-                            }
-                        });
-
-                        group.altNameLinks?.forEach(altNameLink => {
-                            const altGroup = this.groupMap[altNameLink];
-                            if (altGroup) {
-                                if (isSongArtistField) songArtistNames.push(altGroup.name.toLowerCase());
-                                else if (isSongComposerField) songComposerNames.push(altGroup.name.toLowerCase());
-                                else if (isSongArrangerField) songArrangerNames.push(altGroup.name.toLowerCase());
-                            }
-                        });
-                    }
-                });
-
-                switch (this.filterData.searchSelect) {
+                switch (this.search.searchSelect) {
                     case 'searchAll':
                         if (
-                            !songName.includes(searchTerm) &&
-                            !animeNameJA.includes(searchTerm) &&
-                            !animeNameEN.includes(searchTerm) &&
-                            !this.isInSong(animeNames, searchTerm) &&
-                            !this.isInSong(songArtistNames, searchTerm) &&
-                            !this.isInSong(songComposerNames, searchTerm) &&
-                            !this.isInSong(songArrangerNames, searchTerm)
+                            !this.isInSong(songName, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(animeNames, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(songArtistNames, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(songArtistArtistMembersNames, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(songArtistGroupMembersNames, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(songComposerNames, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(songComposerArtistMembersNames, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(songComposerGroupMembersNames, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(songArrangerNames, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(songArrangerArtistMembersNames, searchTerm, searchPartialMatch) &&
+                            !this.isInSong(songArrangerGroupMembersNames, searchTerm, searchPartialMatch)
                         ) {
                             return false;
                         }
                         break;
                     case 'searchAnime':
                         if (
-                            !animeNameJA.includes(searchTerm) &&
-                            !animeNameEN.includes(searchTerm) &&
-                            !this.isInSong(animeNames, searchTerm)
+                            !this.isInSong(animeNames, searchTerm, searchPartialMatch)
                         ) {
                             return false;
                         }
                         break;
                     case 'searchSong':
                         if (
-                            !songName.includes(searchTerm)
+                            !this.isInSong(songName, searchTerm, searchPartialMatch)
                         ) {
                             return false;
                         }
                         break;
                     case 'searchArtist':
                         if (
-                            !this.isInSong(songArtistNames, searchTerm)
+                            !this.isInSong(songArtistNames, searchTerm, searchPartialMatch)
                         ) {
                             return false;
                         }
                         break;
                     case 'searchComposer':
                         if (
-                            !this.isInSong(songComposerNames, searchTerm)
+                            !this.isInSong(songComposerNames, searchTerm, searchPartialMatch)
                         ) {
                             return false;
                         }
                         break;
                     case 'searchArranger':
                         if (
-                            !this.isInSong(songArrangerNames, searchTerm)
+                            !this.isInSong(songArrangerNames, searchTerm, searchPartialMatch)
                         ) {
                             return false;
                         }
@@ -1189,23 +1211,23 @@ class NewSongLibrary {
             }
 
             switch (song.animeStatus) {
-                case 0: if (!this.filterData.other) return false; break;
-                case 1: if (!this.filterData.watching) return false; break;
-                case 2: if (!this.filterData.completed) return false; break;
-                case 3: if (!this.filterData.onhold) return false; break;
-                case 4: if (!this.filterData.dropped) return false; break;
-                case 5: if (!this.filterData.ptw) return false; break;
+                case 0: if (!this.search.other) return false; break;
+                case 1: if (!this.search.watching) return false; break;
+                case 2: if (!this.search.completed) return false; break;
+                case 3: if (!this.search.onhold) return false; break;
+                case 4: if (!this.search.dropped) return false; break;
+                case 5: if (!this.search.ptw) return false; break;
                 default: return false;
             }
 
             switch (song.songType) {
-                case 1: if (!this.filterData.op) return false; break;
-                case 2: if (!this.filterData.ed) return false; break;
-                case 3: if (!this.filterData.insert) return false; break;
+                case 1: if (!this.search.op) return false; break;
+                case 2: if (!this.search.ed) return false; break;
+                case 3: if (!this.search.insert) return false; break;
                 default: return false;
             }
 
-            if (!(song.year >= this.filterData.yearFrom && song.year <= this.filterData.yearTo)) {
+            if (!(song.animeYear >= this.search.yearFrom && song.animeYear <= this.search.yearTo)) {
                 return false;
             }
 
@@ -1213,24 +1235,15 @@ class NewSongLibrary {
         });
     }
 
-    changePlayerStatus(el, id) {
-        let playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
-
-        if (el.checked) playerStatusList.push(id)
-        else playerStatusList = playerStatusList.filter(psl => psl !== id)
-
-        GM_setValue("playerStatusList", JSON.stringify(playerStatusList));
-    }
-
     setPage(pageIndex) {
         this.currentBatchIndex = pageIndex;
+
+        $('#newLibraryClusterId0').scrollTop(0);
 
         this.renderBatch();
     }
 
     renderBatch() {
-        const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
-
         const currentBatchIndexPlusBatchSize = this.currentBatchIndex + this.batchSize;
 
         const fragment = $(document.createDocumentFragment());
@@ -1243,81 +1256,123 @@ class NewSongLibrary {
 
         const pagination = $('<div>');
         pagination.addClass('elNSLPagination');
-        if (currentBatchIndexPlusBatchSize - this.batchSize > 0) {
+
+        if (this.sortedSongsData.length > this.batchSize) {
             const prevPage = $('<button>');
             prevPage.addClass('elNSLPaginationChange')
-            prevPage.attr('onclick', `viewChanger.__controllers.newSongLibrary.setPage(${this.currentBatchIndex - this.batchSize})`);
+            const prevPageIndex = this.currentBatchIndex - this.batchSize;
+            prevPage.on('click', (e) => this.setPage(prevPageIndex));
             prevPage.text(`Prev Page`)
+            if (!(currentBatchIndexPlusBatchSize - this.batchSize > 0)) prevPage.prop('disabled', true);
             pagination.append(prevPage)
-        }
-        if (currentBatchIndexPlusBatchSize < this.sortedSongsData.length) {
+
             const nextPage = $('<button>');
             nextPage.addClass('elNSLPaginationChange')
-            nextPage.attr('onclick', `viewChanger.__controllers.newSongLibrary.setPage(${this.currentBatchIndex + this.batchSize})`);
+            const nextPageIndex = this.currentBatchIndex + this.batchSize;
+            nextPage.on('click', (e) => this.setPage(nextPageIndex));
             nextPage.text(`Next Page`)
+            if (!(currentBatchIndexPlusBatchSize < this.sortedSongsData.length)) nextPage.prop('disabled', true);
             pagination.append(nextPage)
-        }
 
-        pagination.clone().appendTo(fragment);
+            pagination.clone(true).appendTo(fragment);
+        }
 
         for (let i = this.currentBatchIndex; i < endIndex; i++) {
             const template = $(templateHtml);
 
             const song = this.sortedSongsData[i];
 
-            const animeName = song.mainNames.JA
-                ? song.mainNames.EN && song.mainNames.JA !== song.mainNames.EN
-                    ? `<div class="elNSLSongAnimeNameMain">${song.mainNames.JA} <span class="elNSLSongAnimeNameSecond">${song.mainNames.EN}</span></div>`
-                    : `<div class="elNSLSongAnimeNameMain">${song.mainNames.JA}</div>`
-                : `<div class="elNSLSongAnimeNameMain">${song.mainNames.EN}</div>` || '';
+            const animeName = $('<div>', {
+                class: 'elNSLSongAnimeNameMain',
+                html: song.animeMainNames.JA ? `${song.animeMainNames.JA} ` : song.animeMainNames.EN ? `${song.animeMainNames.EN} ` : ''
+            })
+            if (song.animeMainNames.JA && song.animeMainNames.EN && song.animeMainNames.JA !== song.animeMainNames.EN) {
+                animeName.append($('<span>', {
+                    class: 'elNSLSongAnimeNameSecond',
+                    html: song.animeMainNames.EN
+                }))
+            }
+            if (song.animeAnimesIds.malId) {
+                animeName.append($('<a>', {
+                    href: `https://myanimelist.net/anime/${song.animeAnimesIds.malId}`,
+                    html: ' MAL'
+                }))
+            }
+            if (song.animeAnimesIds.anilistId) {
+                animeName.append($('<a>', {
+                    href: `https://anilist.co/anime/${song.animeAnimesIds.anilistId}`,
+                    html: ' ANILIST'
+                }))
+            }
+            if (song.animeAnimesIds.kitsuId) {
+                animeName.append($('<a>', {
+                    href: `https://kitsu.app/anime/${song.animeAnimesIds.kitsuId}`,
+                    html: ' KITSU'
+                }))
+            }
+            if (song.animeAnimesIds.annId) {
+                animeName.append($('<a>', {
+                    href: `https://www.animenewsnetwork.com/encyclopedia/anime.php?id=${song.animeAnimesIds.annId}`,
+                    html: ' ANN'
+                }))
+            }
 
-            const songArtist = song.songArtistId
-                ? this.artistMap[song.songArtistId]
-                : this.groupMap[song.songGroupId];
+            const songArtist = song.songArtist;
 
-            let songType;
             let songTypeFull = song.songNumber == 0 ? '' : song.songNumber;
-            if (song.rebroadcast) songTypeFull += ' R';
-            if (song.dub) songTypeFull += ' D';
+            if (song.songRebroadcast == 1) songTypeFull += ' R';
+            if (song.songDub == 1) songTypeFull += ' D';
+            let songType;
             switch (song.songType) {
                 case 1: songType = `<div class="elNSLSongType elNSLSongTypeOP">OP ${songTypeFull}</div>`; break;
                 case 2: songType = `<div class="elNSLSongType elNSLSongTypeOP">ED ${songTypeFull}</div>`; break;
                 default: songType = `<div class="elNSLSongType elNSLSongTypeOP">INS ${songTypeFull}</div>`;
             }
 
-            const songCheckbox = `<input type="checkbox" onchange="viewChanger.__controllers.newSongLibrary.changePlayerStatus(this, ${song.songId})" class="elNSLPlayerStatusCheckbox" ${playerStatusList.includes(song.songId) && 'checked'} />`;
+            // a
+            let songCheckbox = $('<input>', {
+                type: 'checkbox',
+                checked: this.storageSave.hasStorageSave(song.songSongId),
+                change: (e) => {
+                    this.storageSave.setStorageSave(e.target, song.songSongId);
+                }
+            });
             let animeStatus;
             switch (song.animeStatus) {
-                case 0: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusOther">- ${songCheckbox}</div>`; break;
-                case 1: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusWatching">W ${songCheckbox}</div>`; break;
-                case 2: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusCompleted">C ${songCheckbox}</div>`; break;
-                case 3: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusOn-Hold">O ${songCheckbox}</div>`; break;
-                case 4: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusDropped">D ${songCheckbox}</div>`; break;
-                case 5: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusPTW">P ${songCheckbox}</div>`; break;
-                default: animeStatus = `<div class="elNSLAnimeStatus elNSLAnimeStatusUnknown">- ${songCheckbox}</div>`;
+                case 0: animeStatus = $('<div>').addClass('elNSLAnimeStatus', 'elNSLAnimeStatusOther').html('- ').append(songCheckbox); break;
+                case 1: animeStatus = $('<div>').addClass('elNSLAnimeStatus', 'elNSLAnimeStatusWatching').html('W ').append(songCheckbox); break;
+                case 2: animeStatus = $('<div>').addClass('elNSLAnimeStatus', 'elNSLAnimeStatusCompleted').html('C ').append(songCheckbox); break;
+                case 3: animeStatus = $('<div>').addClass('elNSLAnimeStatus', 'elNSLAnimeStatusOn-Hold').html('O ').append(songCheckbox); break;
+                case 4: animeStatus = $('<div>').addClass('elNSLAnimeStatus', 'elNSLAnimeStatusDropped').html('D ').append(songCheckbox); break;
+                case 5: animeStatus = $('<div>').addClass('elNSLAnimeStatus', 'elNSLAnimeStatusPTW').html('P ').append(songCheckbox); break;
+                default: animeStatus = $('<div>').addClass('elNSLAnimeStatus', 'elNSLAnimeStatusUnknown').html('- ').append(songCheckbox);
             }
 
             const playerStatus = song.playerStatus == 1 ? 'Like' : song.playerStatus == 2 ? 'Dislike' : ''
 
-            const cacheSong = libraryCacheHandler.songEntryMap[song.songId]
-
             const artistContainer = template.find('.elNSLSongSongArtist');
-            new ArtistHover(cacheSong.artist, artistContainer, undefined, null, false);
+            new ArtistHover(songArtist, artistContainer, undefined, null, false);
 
-            template.find('.elNSLSongEntry').attr('data-song-id', song.songId);
+            template.attr('data-song-id', song.songSongId);
             template.find('.elSongSongType').html(songType)
             template.find('.elSongAnimeStatus').html(animeStatus)
             template.find('.elSongAnimeName').html(animeName)
-            template.find('.elNSLSongSongName').html(song.name)
+            template.find('.elNSLSongSongName').html(song.songName)
             template.find('.elSongPlayerStatus').html(playerStatus)
             template.find('.elNSLSongSongArtist').html(songArtist?.name || '')
-            template.find('.elNSLSongInfoButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.showModal(${i})`);
-            template.find('.elNSLSongPlayButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.audioPlayer.loadSong(${i})`);
+            template.find('.elNSLSongSearchButton').on('click', (e) => {
+                this.search.animeId = song.animeAnnId;
+                this.renderSongList();
+            })
+            template.find('.elNSLSongInfoButton').on('click', (e) => this.showModal(i, false))
+            template.find('.elNSLSongPlayButton').on('click', (e) => this.audioPlayer.loadSong(i))
 
             fragment.append(template)
         }
 
-        pagination.clone().appendTo(fragment);
+        if (this.sortedSongsData.length > this.batchSize) {
+            pagination.clone(true).appendTo(fragment);
+        }
 
         $('#newLibraryClusterId0').append(fragment);
 
@@ -1328,11 +1383,11 @@ class NewSongLibrary {
 
     renderSongList() {
         this.sortedSongsData = (this.filterSongs(this.allSongs)).sort((a, b) => {
-            switch (this.filterData.sort) {
-                case 'idasc': return a.annId - b.annId || a.type - b.type || a.number - b.number; break;
-                case 'iddesc': return b.annId - a.annId || a.type - b.type || a.number - b.number; break;
-                case 'namedesc': return -((a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || "")); break;
-                default: return (a.mainNames.JA || a.mainNames.EN || "").localeCompare(b.mainNames.JA || b.mainNames.EN || "");
+            switch (this.search.sort) {
+                case 'idasc': return a.animeAnnId - b.animeAnnId || a.songType - b.songType || a.songNumber - b.songNumber;
+                case 'iddesc': return b.animeAnnId - a.animeAnnId || a.songType - b.songType || a.songNumber - b.songNumber;
+                case 'namedesc': return -((a.animeMainNames.JA || a.animeMainNames.EN || "").localeCompare(b.animeMainNames.JA || b.animeMainNames.EN || ""));
+                default: return (a.animeMainNames.JA || a.animeMainNames.EN || "").localeCompare(b.animeMainNames.JA || b.animeMainNames.EN || "");
             }
         });
 
@@ -1345,15 +1400,11 @@ class NewSongLibrary {
 
         const songsCount = this.sortedSongsData.length;
         $('#elNSLSongsCount').html(songsCount)
-        const animesCount = [...new Set(this.sortedSongsData.map(anime => anime.annId))].length;
+        const animesCount = [...new Set(this.sortedSongsData.map(anime => anime.animeAnnId))].length;
         $('#elNSLAnimesCount').html(animesCount)
 
-        if (!this.loaded) {
-            this.tempCallback();
-            this.$view.removeClass("hide");
-
-            this.loaded = true;
-        }
+        this.tempCallback();
+        this.$view.removeClass("hide");
     }
 
     updateModal(index, songData) {
@@ -1361,60 +1412,51 @@ class NewSongLibrary {
 
         let songType;
         let songTypeFull = song.songNumber == 0 ? '' : song.songNumber;
-        if (song.rebroadcast) songTypeFull += ' R';
-        if (song.dub) songTypeFull += ' D';
+        if (song.songRebroadcast) songTypeFull += ' R';
+        if (song.songDub) songTypeFull += ' D';
         switch (song.songType) {
             case 1: songType = `Opening ${songTypeFull}`; break;
             case 2: songType = `Ending ${songTypeFull}`; break;
             default: songType = `Insert ${songTypeFull}`;
         }
 
-        const animeName = song.mainNames.JA
-            ? song.mainNames.EN && song.mainNames.JA !== song.mainNames.EN
-                // ? `${song.mainNames.JA} <span class="elNSLModalSongType">${songType}</span><div class="elNSLModalSongAnimeNameSecond">${song.mainNames.EN}</div>`
-                ? `${song.mainNames.JA} <span class="elNSLModalSongType">${songType}</span>`
-                : `${song.mainNames.JA} <span class="elNSLModalSongType">${songType}</span>`
-            : `${song.mainNames.EN} <span class="elNSLModalSongType">${songType}</span>` || '';
+        const animeName = $('<div>', {
+            class: 'elNSLSongAnimeNameMain',
+            html: song.animeMainNames.JA ? `${song.animeMainNames.JA} ` : song.animeMainNames.EN ? `${song.animeMainNames.EN} ` : ''
+        })
+        if (song.animeMainNames.JA && song.animeMainNames.EN && song.animeMainNames.JA !== song.animeMainNames.EN) {
+            animeName.append($('<span>', {
+                class: 'elNSLSongAnimeNameSecond',
+                html: song.animeMainNames.EN
+            }))
+        }
 
-        const songArtist = song.songArtistId
-            ? this.artistMap[song.songArtistId].name
-            : this.groupMap[song.songGroupId].name;
-
-        const songComposer = song.composerArtistId
-            ? this.artistMap[song.composerArtistId].name
-            : this.groupMap[song.composerGroupId].name;
-
-        const songArranger = song.arrangerArtistId
-            ? this.artistMap[song.arrangerArtistId].name
-            : this.groupMap[song.arrangerGroupId].name;
+        const songArtist = song.songArtist?.name || '';
+        const songComposer = song.songComposer?.name || '';
+        const songArranger = song.songArranger?.name || '';
 
         const videoSrc = '720' in songData.fileNameMap ? songData.fileNameMap['720'] : '480' in songData.fileNameMap ? songData.fileNameMap['480'] : null;
 
         $('#elNSLModalVideo')[0].src = `https://naedist.animemusicquiz.com/${videoSrc}`;
         $('.elNSLModalSongAnimeJP').html(animeName)
-        $('.elNSLModalSongName').html(song.name)
+        $('.elNSLModalSongName').html(song.songName)
         $('.elNSLModalSongDifficulty').html(songData.globalPercent)
-
-        const cacheSong = libraryCacheHandler.songEntryMap[song.songId]
 
         const modalSongArtist = $('.elNSLModalSongArtist');
         modalSongArtist.html(songArtist);
-        new ArtistHover(cacheSong.artist, modalSongArtist, undefined, null, false);
+        if (song.songArtist) new ArtistHover(song.songArtist, modalSongArtist, undefined, null, false);
 
         const modalSongComposer = $('.elNSLModalSongComposer');
         modalSongComposer.html(songComposer);
-        new ArtistHover(cacheSong.composer, modalSongComposer, undefined, null, false);
+        if (song.songComposer) new ArtistHover(song.songComposer, modalSongComposer, undefined, null, false);
 
         const modalSongArranger = $('.elNSLModalSongArranger');
         modalSongArranger.html(songArranger);
-        new ArtistHover(cacheSong.arranger, modalSongArranger, undefined, null, false);
-
-        $('#elNSLModalVideoPrevButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.setIndexModal(${index - 1})`)
-        $('#elNSLModalVideoNextButton').attr('onclick', `viewChanger.__controllers.newSongLibrary.setIndexModal(${index + 1})`)
+        if (song.songArranger) new ArtistHover(song.songArranger, modalSongArranger, undefined, null, false);
     }
 
-    showModal(index) {
-        const annSongId = this.sortedSongsData[index].annSongId;
+    showModal(index, isOpened) {
+        const annSongId = this.sortedSongsData[index].songAnnSongId;
 
         globalObj[socketName]._socket.emit("command", {
             type: "library",
@@ -1425,42 +1467,51 @@ class NewSongLibrary {
             },
         });
 
-        $('#elNSLModal').modal("show");
+        if (!isOpened) {
+            $('#elNSLModal').modal("show");
+        }
     }
 
-    setIndexModal(index) {
-        const annSongId = this.sortedSongsData[index].annSongId;
+    answerHandle (event) {
+        console.log(event.songInfo);
 
-        globalObj[socketName]._socket.emit("command", {
-            type: "library",
-            command: "get song extended info",
-            data: {
-                annSongId,
-                includeFileNames: true
-            },
-        });
-    }
-
-    answerHandle(event) {
         const { annId, songName, artistInfo } = event.songInfo;
 
         const songArtistGroupId = 'artistId' in artistInfo ? artistInfo.artistId : artistInfo.groupId;
 
         const eventSongIndex = this.allSongs.findIndex(item => {
-            const itemArtistId = item.songArtistId !== null ? item.songArtistId : item.songGroupId;
+            const itemArtistId = item.songArtistArtistId !== null ? item.songArtistArtistId : item.songArtistGroupId;
 
-            return item.annId == annId &&
-                songArtistGroupId == itemArtistId &&
-                item.name == songName;
+            return item.animeAnnId == annId &&
+                itemArtistId == songArtistGroupId &&
+                item.songName == songName;
         });
-        const eventSongId = this.allSongs[eventSongIndex].songId;
+        const eventSongId = this.allSongs[eventSongIndex].songSongId;
 
-        const playerStatusList = JSON.parse(GM_getValue("playerStatusList", "[]"));
-
-        function checkForElement() {
+        const checkForElement = () => {
             const $element = $('#qpSongType');
             if ($element.length) {
-                $('#qpSongType').append(`<div>Saved <input type="checkbox" onchange="viewChanger.__controllers.newSongLibrary.changePlayerStatus(this, ${eventSongId})" class="elNSLPlayerStatusCheckbox" ${playerStatusList.includes(eventSongId) && 'checked'} /></div>`)
+                // $('#qpSongType').append(`<div>Saved <input type="checkbox" onchange="viewChanger.__controllers.newSongLibrary.storageSave.setStorageSave(this, ${eventSongId})" class="elNSLPlayerStatusCheckbox" ${this.storageSave.hasStorageSave(eventSongId) && 'checked'} /></div>`)
+
+                                // <input type="checkbox" name="searchPartialMatch" id="searchPartialMatch" checked>
+                                // <label for="searchPartialMatch">Partial Match</label>
+
+                $element.append(
+                    $('<div>').append(
+                        $('<label>', {
+                            for: 'answerCheckbox',
+                            html: 'Saved'
+                        }),
+                        $('<input>', {
+                            type: 'checkbox',
+                            name: 'answerCheckbox',
+                            id: 'answerCheckbox',
+                            checked: this.storageSave.hasStorageSave(eventSongId),
+                            change: (e) => {
+                                this.storageSave.setStorageSave(e.target, eventSongId);
+                            }
+                        })
+                    ));
 
                 clearInterval(intervalId);
             }
@@ -1469,20 +1520,40 @@ class NewSongLibrary {
         const intervalId = setInterval(checkForElement, 100);
     }
 
+    loadLibrary() {
+        let cacheValue;
+
+        Object.defineProperty(libraryCacheHandler, 'annSongIdAnnIdMap', {
+            get: function () {
+                return cacheValue;
+            },
+            set: (value) => {
+                cacheValue = value;
+
+                this.listners = [];
+                this.listners.push(
+                    globalObj[socketName].listners['get anime status list'][0],
+                    globalObj[socketName].listners['get player status list'][0]
+                )
+                this.listners.forEach(listener => listener.unbindListener())
+
+                this.animeMap = { ...libraryCacheHandler.animeCache };
+
+                this.getLibraryMasterList();
+            }
+        });
+        libraryCacheHandler.requestCacheUpdate(0);
+    }
+
     openView(callback) {
         this.tempCallback = callback;
         this.active = true;
 
-        libraryCacheHandler.requestCacheUpdate(0)
-
-        this.listners = [];
-        this.listners.push(
-            globalObj[socketName].listners['get anime status list'][0],
-            globalObj[socketName].listners['get player status list'][0]
-        )
-        this.listners.forEach(listener => listener.unbindListener())
-
-        this.getLibraryMasterList();
+        if (!this.loaded) {
+            this.loadLibrary();
+        } else {
+            this.getLibraryMasterList();
+        }
     }
 
     closeView() {
@@ -1494,15 +1565,6 @@ class NewSongLibrary {
         this.listners.forEach(listener => listener.bindListener())
         this.listners = [];
     }
-}
-
-function setupNewSongLibrary() {
-    const newSongLibrary = new NewSongLibrary();
-
-    globalObj[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
-    globalObj[viewChangerName].__controllers.newSongLibrary.setup()
-
-    new Listener('answer results', (e) => globalObj[viewChangerName].__controllers.newSongLibrary.answerHandle(e)).bindListener();
 }
 
 const waitForInitialLoad = () => {
@@ -1523,5 +1585,10 @@ const waitForInitialLoad = () => {
 };
 
 waitForInitialLoad().then(() => {
-    setupNewSongLibrary();
+    const newSongLibrary = new NewSongLibrary();
+
+    globalObj[viewChangerName].__controllers.newSongLibrary = newSongLibrary;
+    globalObj[viewChangerName].__controllers.newSongLibrary.setup()
+
+    // new Listener('answer results', (e) => globalObj[viewChangerName].__controllers.newSongLibrary.answerHandle(e)).bindListener();
 });
