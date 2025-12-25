@@ -595,8 +595,6 @@ const htmlContent = `
         function getSongComposer(song) { }
 
         const handleSocketCommand = (event) => {
-            console.log(event)
-
             switch (event.command) {
                 case 'answer results': answerHandle(event.data); break;
                 case 'get song extended info':
@@ -606,7 +604,6 @@ const htmlContent = `
                     songData.amqSong = song;
 
                     if ($('#elNSLModal').hasClass('in')) {
-                        console.log(songData)
                         updateModal("song", songData);
                     } else {
                         loadTrack(songData, songData.amqSong.fileName);
