@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.12
+// @version      0.13
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -19,7 +19,7 @@
 // @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
 
-const version = '0.12';
+const version = '0.13';
 
 GM_addStyle(`
     .svg-icon { width: 1em; height: 1em; vertical-align: -0.125em; fill: white; }
@@ -64,7 +64,7 @@ GM_addStyle(`
     .elNSLSongEntryPlaying { margin-left: 8px; margin-right: -8px; }
     .elNSLSongShowMore { width: 100%; padding: 16px; text-align: center; }
     .elNSLSongShowMoreButton:hover { cursor: pointer; }
-    .elNSLSongRow { display: grid; grid-template-columns: 55px 1fr 30px 30px 30px; gap: 4px; }
+    .elNSLSongRow { display: grid; grid-template-columns: 55px 1fr 35px 30px 30px; gap: 4px; }
     .elNSLFormCheckboxGroup { padding-top: 12px; }
     .elNSLFormCheckboxGroupHalf { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
     .elNSLSongAnimeNameMain { font-size: 18px; }
@@ -82,8 +82,7 @@ GM_addStyle(`
     .elNSLSongArtist { color: lightgray; }
     .elNSLSongInfo { display: flex; justify-content: center; align-items: center; }
     .elNSLSongInfoButton:hover { cursor:pointer; }
-    .elNSLSongSearch { display: flex; justify-content: center; align-items: center; }
-    .elNSLSongSearchButton:hover { cursor:pointer; }
+    .songRateSelect { display: flex; justify-content: center; align-items: center; color: black; appearance: none; }
     .elNSLSongPlay { display: flex; justify-content: center; align-items: center; }
     .elNSLSongPlayButton:hover { cursor:pointer; }
     .elNSLModalVideo { width: 100%; }
@@ -93,6 +92,9 @@ GM_addStyle(`
     .elNSLModalSongAnimeNameSecond { font-size: 1em; color: darkgray; }
     .elNSLModalSongType { font-size: 0.6em; color: darkgray; }
     .elNSLModalSongAnimePanel { margin-bottom: 6px; }
+    .elNSLModalSongAnimePanelTable { width: 100%; table-layout: fixed; border-radius: 4px }
+    .elNSLModalSongAnimePanelTable tr th { padding: 4px; text-align: center; background-color: #282828; }
+    .elNSLModalSongAnimePanelTable tr td { padding: 4px; text-align: center; }
     .elNSLModalSongName { font-size: 1.2em; }
     .elNSLModalSongArtistTitle { font-size: 1.2em; }
     .elNSLModalSongNamePanel { margin-bottom: 6px; }
@@ -371,11 +373,58 @@ const htmlContent = `
                 <div class="modal-body">
                     <video class="elNSLModalVideo" id="elNSLModalVideo" autoplay controls>Your browser does not support the video tag.</video>
                     <div class="elNSLModalSongAnimePanel"><span class="elNSLModalSongAnimeEN"></span></div>
-                    <div class="elNSLModalSongNamePanel"><span class="elNSLModalSongName"></span> - <span class="elNSLModalSongArtist"></span></div>
-                    <div class="elNSLModalSongComposerTitle">Composer: <span class="elNSLModalSongComposer"></span></div>
-                    <div class="elNSLModalSongArrangerTitle">Arranger: <span class="elNSLModalSongArranger"></span></div>
-                    <div class="elNSLModalSongDifficultyTitle">Difficulty: <span class="elNSLModalSongDifficulty"></span></div>
-                    <div class="elNSLModalSongAnimeLinks"></div>
+                    <table class="elNSLModalSongAnimePanelTable">
+                        <tbody>
+                            <tr>
+                                <th colspan="2">SONG NAME</th>
+                                <th colspan="2">ARTIST</th>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><span class="elNSLModalSongName"></span></td>
+                                <td colspan="2"><span class="elNSLModalSongArtist"></span></td>
+                            </tr>
+                            <tr>
+                                <th colspan="2">COMPOSER</th>
+                                <th colspan="2">ARRANGER</th>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><span class="elNSLModalSongComposer"></span></td>
+                                <td colspan="2"><span class="elNSLModalSongArranger"></span></td>
+                            </tr>
+                            <tr>
+                                <th colspan="2">DIFFICULTY</th>
+                                <th colspan="2">LINKS</th>
+                            </tr>
+                            <tr>
+                                <td colspan="2"><span class="elNSLModalSongDifficulty"></span> / <span class="elNSLModalSongDifficultyOwn"></span></td>
+                                <td colspan="2"><span class="elNSLModalSongAnimeLinks"></span></td>
+                            </tr>
+                            <tr>
+                                <th>AnnId</th>
+                                <th>AnnSongId</th>
+                                <th>SongId</th>
+                                <th>-</th>
+                            </tr>
+                            <tr>
+                                <td><span class="elNSLModalSongAnnId"></span></td>
+                                <td><span class="elNSLModalSongAnnSongId"></span></td>
+                                <td><span class="elNSLModalSongSongId"></span></td>
+                                <td>-</td>
+                            </tr>
+                            <tr>
+                                <th colspan="4">Genres</th>
+                            </tr>
+                            <tr>
+                                <td colspan="4"><span class="elNSLModalSongGenres"></span></td>
+                            </tr>
+                            <tr>
+                                <th colspan="4">TAGS</th>
+                            </tr>
+                            <tr>
+                                <td colspan="4"><span class="elNSLModalSongTags"></span></td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -389,10 +438,14 @@ const htmlContent = `
                 </div>
                 <div>
                     <span class="elSongAnimeName">{animeName}</span>
-                    <div class="elNSLSongName"><span class="elNSLSongSongName">{songName}</span> - <span class="elNSLSongSongArtist">{songArtist}</span> <span class="elSongPlayerStatus">{playerStatus}</span></div>
+                    <div class="elNSLSongName"><span class="elNSLSongSongName">{songName}</span> - <span class="elNSLSongSongArtist">{songArtist}</span></div>
                 </div>
-                <div class="elNSLSongSearch">
-                    <a class="elNSLSongSearchButton"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352a144 144 0 1 0 0-288 144 144 0 1 0 0 288z"/></svg></a>
+                <div class="songRateSelect">              
+                    <select name="songRate" id="songRate">
+                        <option value="songRateLike">L</option>
+                        <option value="songRateUnrated" selected>-</option>
+                        <option value="songRateDislike">D</option>
+                    </select>
                 </div>
                 <div class="elNSLSongInfo">
                     <a class="elNSLSongInfoButton"><svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM216 336l24 0 0-64-24 0c-13.3 0-24-10.7-24-24s10.7-24 24-24l48 0c13.3 0 24 10.7 24 24l0 88 8 0c13.3 0 24 10.7 24 24s-10.7 24-24 24l-80 0c-13.3 0-24-10.7-24-24s10.7-24 24-24zm40-208a32 32 0 1 1 0 64 32 32 0 1 1 0-64z"/></svg></a>
@@ -459,7 +512,14 @@ const htmlContent = `
                 default: songType = `Insert${songTypeFull}`;
             }
 
-            $('.elNSLAudioPlayerSongInfoFirst').text(`${songData.songEntry.name} - ${songData.songEntry.artist.name}`);
+            // $('.elNSLAudioPlayerSongInfoFirst').text(`${songData.songEntry.name} - ${songData.songEntry.artist.name}`);
+
+            const songArtist = $('<span>', { html: `${songData.songEntry.artist.name}` });
+            new ArtistHover(songData.songEntry.artist, songArtist, undefined, null, false);
+            $('.elNSLAudioPlayerSongInfoFirst').append(
+                $('<span>', { html: `${songData.songEntry.name}` })
+            ).append(' - ').append(songArtist);
+
             $('.elNSLAudioPlayerSongInfoSecond').text(`${songData.animeEntry.mainNames.JA || songData.animeEntry.mainNames.EN} (${songType})`);
 
             if (songData.song.audio == null) songData.song.audio = audioSource;
@@ -595,6 +655,8 @@ const htmlContent = `
         function getSongComposer(song) { }
 
         const handleSocketCommand = (event) => {
+            console.log(event)
+
             switch (event.command) {
                 case 'answer results': answerHandle(event.data); break;
                 case 'get song extended info':
@@ -639,7 +701,7 @@ const htmlContent = `
                             ...anime,
                             songEntry: {
                                 ...anime.songEntry,
-                                status: event.data.statusListMap[anime.songEntry.songId] || 0
+                                status: event.data.statusListMap[anime.song.annSongId] || 0
                             }
                         }
                     });
@@ -855,8 +917,6 @@ const htmlContent = `
                     }
                 }
 
-                let playerStatus = 'status' in song.songEntry ? song.songEntry.status == 1 ? 'Like' : song.songEntry.status == 2 ? 'Dislike' : '' : '';
-
                 const artistContainer = template.find('.elNSLSongSongArtist');
                 new ArtistHover(songArtist, artistContainer, undefined, null, false);
 
@@ -865,12 +925,26 @@ const htmlContent = `
                 template.find('.elSongAnimeStatus').html(animeStatus)
                 template.find('.elSongAnimeName').html(animeName)
                 template.find('.elNSLSongSongName').html(song.songEntry.name)
-                template.find('.elSongPlayerStatus').html(playerStatus)
                 template.find('.elNSLSongSongArtist').html(songArtist?.name || '')
                 template.find('.elNSLSongInfoButton').on('click', (e) => showModal(i, false))
                 template.find('.elNSLSongPlayButton').on('click', (e) => {
                     loadSong(song.songEntry.songId)
                 })
+
+                template.find('#songRate').on('change', function () {
+                    var selectedValue = $(this).val();
+
+                    switch (selectedValue) {
+                        case 'songRateLike': globalObj[socketName]._socket.emit("command", { type: "library", command: "set song like status", data: { annSongId: song.song.annSongId, stateId: 1 } }); (getSongBySongId(song.songEntry.songId)).songEntry.status = 1; break;
+                        case 'songRateUnrated': globalObj[socketName]._socket.emit("command", { type: "library", command: "set song like status", data: { annSongId: song.song.annSongId, stateId: 0 } }); (getSongBySongId(song.songEntry.songId)).songEntry.status = 0; break;
+                        case 'songRateDislike': globalObj[socketName]._socket.emit("command", { type: "library", command: "set song like status", data: { annSongId: song.song.annSongId, stateId: 2 } }); (getSongBySongId(song.songEntry.songId)).songEntry.status = 2; break;
+                    }
+                });
+
+                switch (song.songEntry.status) {
+                    case 1: template.find('#songRate').val('songRateLike'); break;
+                    case 2: template.find('#songRate').val('songRateDislike'); break;
+                }
 
                 fragment.append(template)
             }
@@ -938,6 +1012,10 @@ const htmlContent = `
                 $('.elNSLModalSongAnimeJP').html(animeName)
                 $('.elNSLModalSongName').html(song.songEntry.name)
                 $('.elNSLModalSongDifficulty').html(song.amqSong.globalPercent)
+                $('.elNSLModalSongDifficultyOwn').html(song.amqSong.recentPercent)
+                $('.elNSLModalSongAnnId').html(song.amqSong.annId)
+                $('.elNSLModalSongAnnSongId').html(song.amqSong.annSongId)
+                $('.elNSLModalSongSongId').html(song.amqSong.songId)
 
                 const modalSongArtist = $('.elNSLModalSongArtist');
                 modalSongArtist.html(songArtist);
@@ -968,6 +1046,17 @@ const htmlContent = `
                     html: 'Kitsu',
                     href: `https://kitsu.app/anime/${song.amqAnime.kitsuId}`,
                 })).append(' ');
+
+                $('.elNSLModalSongGenres').html(``);
+                song.amqAnime.genres.forEach((genre, index) => {
+                    $('.elNSLModalSongGenres').append(`${genre}`);
+                    if (index < song.amqAnime.genres.length - 1) $('.elNSLModalSongGenres').append(', ');
+                });
+                $('.elNSLModalSongTags').html(``);
+                song.amqAnime.tags.forEach((tag, index) => {
+                    $('.elNSLModalSongTags').append(`${tag}`);
+                    if (index < song.amqAnime.tags.length - 1) $('.elNSLModalSongTags').append(', ');
+                });
             }
         }
 
@@ -1101,7 +1190,6 @@ const htmlContent = `
                             annSongId: song.annSongId,
                             dub: song.dub,
                             number: song.number,
-                            playerLikeStatus: song.playerLikeStatus,
                             rebroadcast: song.rebroadcast,
                             type: song.type,
                             uploadStatus: song.uploadStatus,
@@ -1126,6 +1214,7 @@ const htmlContent = `
                             songArtistId: song.songEntry.songArtistId,
                             songGroupId: song.songEntry.songGroupId,
                             songId: song.songEntry.songId,
+                            status: 0,
                         },
                         animeEntry: {
                             annId: anime.annId,
@@ -1136,6 +1225,7 @@ const htmlContent = `
                             searchNames: anime.searchNames,
                             seasonId: anime.seasonId,
                             year: anime.year,
+                            status: 0,
                         }
                     }
                 }).flat();
