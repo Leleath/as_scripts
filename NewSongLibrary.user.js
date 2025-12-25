@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.11
+// @version      0.12
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -19,7 +19,7 @@
 // @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
 
-const version = '0.11';
+const version = '0.12';
 
 GM_addStyle(`
     .svg-icon { width: 1em; height: 1em; vertical-align: -0.125em; fill: white; }
@@ -98,6 +98,7 @@ GM_addStyle(`
     .elNSLModalSongNamePanel { margin-bottom: 6px; }
     .elNSLModalSongComposerTitle { font-size: 1.2em; }
     .elNSLModalSongArrangerTitle { font-size: 1.2em; margin-bottom: 6px; }
+    .elNSLModalSongDifficultyTitle { font-size: 1.2em; margin-bottom: 6px; }
     .elNSLAudioPlayer { width: 100%; height: 80px; background: #181818; border-top: 1px solid #282828; display: flex; justify-content: space-between; padding: 8px 16px; font-family: 'Circular', Helvetica, Arial, sans-serif; }
     .elNSLAudioPlayerSongInfo { display: flex; align-items: center; width: 30%; min-width: 180px; }
     .elNSLAudioPlayerSongDetails { display: flex; flex-direction: column; }
@@ -374,7 +375,7 @@ const htmlContent = `
                     <div class="elNSLModalSongComposerTitle">Composer: <span class="elNSLModalSongComposer"></span></div>
                     <div class="elNSLModalSongArrangerTitle">Arranger: <span class="elNSLModalSongArranger"></span></div>
                     <div class="elNSLModalSongDifficultyTitle">Difficulty: <span class="elNSLModalSongDifficulty"></span></div>
-
+                    <div class="elNSLModalSongAnimeLinks"></div>
                 </div>
             </div>
         </div>
@@ -430,30 +431,17 @@ const htmlContent = `
         function getSongBySongId(songId) {
             return sortedSongsData.find(songData => songData.songEntry.songId == songId);
         }
+        function getAnimeByAnnId(annId) {
+            return sortedSongsData.find(songData => songData.animeEntry.annId == annId);
+        }
 
         function loadSong(songId) {
-            if (currentTrackSongId == songId && isPlaying) {
-                togglePlay();
-
-                return;
-            }
+            if (currentTrackSongId == songId && isPlaying) { togglePlay(); return; }
 
             const songData = getSongBySongId(songId);
 
-            if (songData?.song?.audio == null) {
-                const annSongId = songData.song.annSongId;
-
-                globalObj[socketName]._socket.emit("command", {
-                    type: "library",
-                    command: "get song extended info",
-                    data: {
-                        annSongId,
-                        includeFileNames: true
-                    },
-                });
-            } else {
-                loadTrack(songData, null)
-            }
+            if (songData?.amqSong == null) globalObj[socketName]._socket.emit("command", { type: "library", command: "get song extended info", data: { annSongId: songData.song.annSongId, includeFileNames: true } });
+            else loadTrack(songData, songData.amqSong.fileName);
         }
 
         function loadTrack(songData, audioSource) {
@@ -601,10 +589,10 @@ const htmlContent = `
             GM_setValue("playerStatusList", JSON.stringify(storageSave));
         }
 
-        function getTitleName(song) {}
-        function getSongName(song) {}
-        function getSongArtist(song) {}
-        function getSongComposer(song) {}
+        function getTitleName(song) { }
+        function getSongName(song) { }
+        function getSongArtist(song) { }
+        function getSongComposer(song) { }
 
         const handleSocketCommand = (event) => {
             console.log(event)
@@ -614,13 +602,24 @@ const htmlContent = `
                 case 'get song extended info':
                     const song = event.data;
 
-                    const songData = getSongBySongId((sortedSongsData.find(songData => songData.song.annSongId == song.annSongId)).songEntry.songId);
+                    const songData = getSongBySongId(song.songId);
+                    songData.amqSong = song;
 
                     if ($('#elNSLModal').hasClass('in')) {
-                        updateModal(songData, song);
+                        console.log(songData)
+                        updateModal("song", songData);
                     } else {
-                        loadTrack(songData, song.fileName);
+                        loadTrack(songData, songData.amqSong.fileName);
                     }
+
+                    break;
+                case 'get anime extended info':
+                    const anime = event.data;
+
+                    const animeData = getAnimeByAnnId(anime.annId);
+                    animeData.amqAnime = anime;
+
+                    updateModal("anime", animeData);
 
                     break;
                 case 'get anime status list':
@@ -651,16 +650,9 @@ const htmlContent = `
                     renderSongList();
 
                     break;
-                case 'anime list update result': getLibraryMasterList(); break;
+                case 'anime list update result': globalObj[socketName]._socket.emit("command", { type: "library", command: "get anime status list" }); break;
             }
         }
-
-        // async function getLibraryMasterList() {
-        //     globalObj[socketName]._socket.emit("command", {
-        //         type: "library",
-        //         command: "get anime status list",
-        //     });
-        // }
 
         function isInSong(dataArray, searchTerm, searchPartialMatch) {
             for (let i = 0; i < dataArray.length; i++) {
@@ -916,69 +908,82 @@ const htmlContent = `
             renderBatch()
         }
 
-        function updateModal(index, songData) {
-            const song = sortedSongsData[index];
+        function updateModal(type, song) {
+            if (type == 'song') {
+                let songType;
+                let songTypeFull = song.song.number == 0 ? '' : song.song.number;
+                if (song.song.rebroadcast) songTypeFull += ' R';
+                if (song.song.dub) songTypeFull += ' D';
+                switch (song.song.type) {
+                    case 1: songType = `Opening ${songTypeFull}`; break;
+                    case 2: songType = `Ending ${songTypeFull}`; break;
+                    default: songType = `Insert ${songTypeFull}`;
+                }
 
-            let songType;
-            let songTypeFull = song.song.number == 0 ? '' : song.song.number;
-            if (song.song.rebroadcast) songTypeFull += ' R';
-            if (song.song.dub) songTypeFull += ' D';
-            switch (song.song.type) {
-                case 1: songType = `Opening ${songTypeFull}`; break;
-                case 2: songType = `Ending ${songTypeFull}`; break;
-                default: songType = `Insert ${songTypeFull}`;
+                const animeName = $('<div>', {
+                    class: 'elNSLSongAnimeNameMain',
+                    html: song.animeEntry.mainNames.JA ? `${song.animeEntry.mainNames.JA} ` : song.animeEntry.mainNames.EN ? `${song.animeEntry.mainNames.EN} ` : ''
+                })
+                if (song.animeEntry.mainNames.JA && song.animeEntry.mainNames.EN && song.animeEntry.mainNames.JA !== song.animeEntry.mainNames.EN) {
+                    animeName.append($('<span>', {
+                        class: 'elNSLSongAnimeNameSecond',
+                        html: song.animeEntry.mainNames.EN
+                    }))
+                }
+
+                const songArtist = song.songEntry.artist?.name || '';
+                const songComposer = song.songEntry.composer?.name || '';
+                const songArranger = song.songEntry.arranger?.name || '';
+
+                const videoSrc = '720' in song.amqSong.fileNameMap ? song.amqSong.fileNameMap['720'] : '480' in song.amqSong.fileNameMap ? song.amqSong.fileNameMap['480'] : null;
+
+                $('#elNSLModalVideo')[0].src = `https://naedist.animemusicquiz.com/${videoSrc}`;
+                $('.elNSLModalSongAnimeJP').html(animeName)
+                $('.elNSLModalSongName').html(song.songEntry.name)
+                $('.elNSLModalSongDifficulty').html(song.amqSong.globalPercent)
+
+                const modalSongArtist = $('.elNSLModalSongArtist');
+                modalSongArtist.html(songArtist);
+                if (song.songEntry.artist) new ArtistHover(song.songEntry.artist, modalSongArtist, undefined, null, false);
+
+                const modalSongComposer = $('.elNSLModalSongComposer');
+                modalSongComposer.html(songComposer);
+                if (song.songEntry.composer) new ArtistHover(song.songEntry.composer, modalSongComposer, undefined, null, false);
+
+                const modalSongArranger = $('.elNSLModalSongArranger');
+                modalSongArranger.html(songArranger);
+                if (song.songEntry.arranger) new ArtistHover(song.songEntry.arranger, modalSongArranger, undefined, null, false);
+            } else if (type == 'anime') {
+                $('.elNSLModalSongAnimeLinks').html('');
+                if (song.amqAnime.annId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
+                    html: 'ANN',
+                    href: `https://www.animenewsnetwork.com/encyclopedia/anime.php?id=${song.amqAnime.annId}`,
+                })).append(' ');
+                if (song.amqAnime.malId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
+                    html: 'MAL',
+                    href: `https://myanimelist.net/anime/${song.amqAnime.malId}`
+                })).append(' ');
+                if (song.amqAnime.anilistId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
+                    html: 'Anilist',
+                    href: `https://anilist.co/anime/${song.amqAnime.anilistId}`,
+                })).append(' ');
+                if (song.amqAnime.kitsuId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
+                    html: 'Kitsu',
+                    href: `https://kitsu.app/anime/${song.amqAnime.kitsuId}`,
+                })).append(' ');
             }
-
-            const animeName = $('<div>', {
-                class: 'elNSLSongAnimeNameMain',
-                html: song.animeEntry.mainNames.JA ? `${song.animeEntry.mainNames.JA} ` : song.animeEntry.mainNames.EN ? `${song.animeEntry.mainNames.EN} ` : ''
-            })
-            if (song.animeEntry.mainNames.JA && song.animeEntry.mainNames.EN && song.animeEntry.mainNames.JA !== song.animeEntry.mainNames.EN) {
-                animeName.append($('<span>', {
-                    class: 'elNSLSongAnimeNameSecond',
-                    html: song.animeEntry.mainNames.EN
-                }))
-            }
-
-            const songArtist = song.songEntry.artist?.name || '';
-            const songComposer = song.songEntry.composer?.name || '';
-            const songArranger = song.songEntry.arranger?.name || '';
-
-            const videoSrc = '720' in songData.fileNameMap ? songData.fileNameMap['720'] : '480' in songData.fileNameMap ? songData.fileNameMap['480'] : null;
-
-            $('#elNSLModalVideo')[0].src = `https://naedist.animemusicquiz.com/${videoSrc}`;
-            $('.elNSLModalSongAnimeJP').html(animeName)
-            $('.elNSLModalSongName').html(song.songEntry.name)
-            $('.elNSLModalSongDifficulty').html(songData.globalPercent)
-
-            const modalSongArtist = $('.elNSLModalSongArtist');
-            modalSongArtist.html(songArtist);
-            if (song.songArtist) new ArtistHover(song.songEntry.artist, modalSongArtist, undefined, null, false);
-
-            const modalSongComposer = $('.elNSLModalSongComposer');
-            modalSongComposer.html(songComposer);
-            if (song.songComposer) new ArtistHover(song.songEntry.composer, modalSongComposer, undefined, null, false);
-
-            const modalSongArranger = $('.elNSLModalSongArranger');
-            modalSongArranger.html(songArranger);
-            if (song.songArranger) new ArtistHover(song.songEntry.arranger, modalSongArranger, undefined, null, false);
         }
 
         function showModal(index, isOpened) {
-            const annSongId = sortedSongsData[index].song.annSongId;
+            const current = sortedSongsData[index];
 
-            globalObj[socketName]._socket.emit("command", {
-                type: "library",
-                command: "get song extended info",
-                data: {
-                    annSongId,
-                    includeFileNames: true
-                },
-            });
+            if (!current?.amqSong) globalObj[socketName]._socket.emit("command", { type: "library", command: "get song extended info", data: { annSongId: current.song.annSongId, includeFileNames: true } });
+            else updateModal("song", current);
 
-            if (!isOpened) {
-                $('#elNSLModal').modal("show");
-            }
+            if (!current?.amqAnime) globalObj[socketName]._socket.emit("command", { type: "library", command: "get anime extended info", data: { annId: current.animeEntry.annId, includeFileNames: true } });
+            else updateModal("anime", current);
+
+            if (!isOpened) $('#elNSLModal').modal("show");
         }
 
         function answerHandle(event) {
@@ -1087,10 +1092,63 @@ const htmlContent = `
         });
 
         globalObj[socketName]._socket.addEventListener("command", handleSocketCommand);
-        globalObj[socketName]._socket.emit("command", { type: "library", command: "get anime status list" });
-        globalObj[socketName]._socket.emit("command", { type: "library", command: "get player status list" });
 
         // 
+
+        function createSongMap() {
+            songMap = Object.values(libraryCacheHandler.animeCache).map(anime => {
+                return Object.values(anime.songMap).map(song => {
+                    return {
+                        song: {
+                            annId: song.annId,
+                            annSongId: song.annSongId,
+                            dub: song.dub,
+                            number: song.number,
+                            playerLikeStatus: song.playerLikeStatus,
+                            rebroadcast: song.rebroadcast,
+                            type: song.type,
+                            uploadStatus: song.uploadStatus,
+                            uploaded: song.uploaded,
+                            wrongIndex: song.wrongIndex,
+                            audio: null,
+                        },
+                        songEntry: {
+                            arranger: song.songEntry.arranger,
+                            arrangerArtistId: song.songEntry.arrangerArtistId,
+                            arrangerGroupId: song.songEntry.arrangerGroupId,
+                            artist: song.songEntry.artist,
+                            category: song.songEntry.category,
+                            composer: song.songEntry.composer,
+                            composerArtistId: song.songEntry.composerArtistId,
+                            composerGroupId: song.songEntry.composerGroupId,
+                            dub: song.songEntry.dub,
+                            name: song.songEntry.name,
+                            rebroadcast: song.songEntry.rebroadcast,
+                            searchIndex: song.songEntry.searchIndex,
+                            searchNames: song.songEntry.searchNames,
+                            songArtistId: song.songEntry.songArtistId,
+                            songGroupId: song.songEntry.songGroupId,
+                            songId: song.songEntry.songId,
+                        },
+                        animeEntry: {
+                            annId: anime.annId,
+                            category: anime.category,
+                            mainNames: anime.mainNames,
+                            names: anime.names,
+                            searchIndex: anime.searchIndex,
+                            searchNames: anime.searchNames,
+                            seasonId: anime.seasonId,
+                            year: anime.year,
+                        }
+                    }
+                }).flat();
+            }).flat();
+
+            renderSongList();
+
+            globalObj[socketName]._socket.emit("command", { type: "library", command: "get anime status list" });
+            globalObj[socketName]._socket.emit("command", { type: "library", command: "get player status list" });
+        }
 
         let cacheValue;
         Object.defineProperty(libraryCacheHandler, 'annSongIdAnnIdMap', {
@@ -1098,55 +1156,7 @@ const htmlContent = `
             set: (value) => {
                 cacheValue = value;
 
-                songMap = Object.values(libraryCacheHandler.animeCache).map(anime => {
-                    return Object.values(anime.songMap).map(song => {
-                        return {
-                            song: {
-                                annId: song.annId,
-                                annSongId: song.annSongId,
-                                dub: song.dub,
-                                number: song.number,
-                                playerLikeStatus: song.playerLikeStatus,
-                                rebroadcast: song.rebroadcast,
-                                type: song.type,
-                                uploadStatus: song.uploadStatus,
-                                uploaded: song.uploaded,
-                                wrongIndex: song.wrongIndex,
-                                audio: null,
-                            },
-                            songEntry: {
-                                arranger: song.songEntry.arranger,
-                                arrangerArtistId: song.songEntry.arrangerArtistId,
-                                arrangerGroupId: song.songEntry.arrangerGroupId,
-                                artist: song.songEntry.artist,
-                                category: song.songEntry.category,
-                                composer: song.songEntry.composer,
-                                composerArtistId: song.songEntry.composerArtistId,
-                                composerGroupId: song.songEntry.composerGroupId,
-                                dub: song.songEntry.dub,
-                                name: song.songEntry.name,
-                                rebroadcast: song.songEntry.rebroadcast,
-                                searchIndex: song.songEntry.searchIndex,
-                                searchNames: song.songEntry.searchNames,
-                                songArtistId: song.songEntry.songArtistId,
-                                songGroupId: song.songEntry.songGroupId,
-                                songId: song.songEntry.songId,
-                            },
-                            animeEntry: {
-                                annId: anime.annId,
-                                category: anime.category,
-                                mainNames: anime.mainNames,
-                                names: anime.names,
-                                searchIndex: anime.searchIndex,
-                                searchNames: anime.searchNames,
-                                seasonId: anime.seasonId,
-                                year: anime.year,
-                            }
-                        }
-                    }).flat();
-                }).flat();
-
-                renderSongList();
+                createSongMap();
             },
         });
         libraryCacheHandler.requestCacheUpdate(0);
