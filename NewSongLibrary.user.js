@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.13
+// @version      0.14
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -19,7 +19,7 @@
 // @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
 
-const version = '0.13';
+const version = '0.14';
 
 GM_addStyle(`
     .svg-icon { width: 1em; height: 1em; vertical-align: -0.125em; fill: white; }
@@ -502,20 +502,13 @@ const htmlContent = `
                 $(element).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>');
             });
 
-            let songTypeFull = songData.song.number == 0 ? '' : ` ${songData.song.number}`;
-            if (songData.song.rebroadcast) songTypeFull += ' R';
-            if (songData.song.dub) songTypeFull += ' D';
-            let songType;
-            switch (songData.song.type) {
-                case 1: songType = `Opening${songTypeFull}`; break;
-                case 2: songType = `Ending${songTypeFull}`; break;
-                default: songType = `Insert${songTypeFull}`;
-            }
+            let songType = getSongType(songData, false)
 
             // $('.elNSLAudioPlayerSongInfoFirst').text(`${songData.songEntry.name} - ${songData.songEntry.artist.name}`);
 
             const songArtist = $('<span>', { html: `${songData.songEntry.artist.name}` });
             new ArtistHover(songData.songEntry.artist, songArtist, undefined, null, false);
+            $('.elNSLAudioPlayerSongInfoFirst').html('')
             $('.elNSLAudioPlayerSongInfoFirst').append(
                 $('<span>', { html: `${songData.songEntry.name}` })
             ).append(' - ').append(songArtist);
@@ -651,8 +644,23 @@ const htmlContent = `
 
         function getTitleName(song) { }
         function getSongName(song) { }
-        function getSongArtist(song) { }
-        function getSongComposer(song) { }
+        function getArtistHover(artist, element) {
+            element.html('-');
+            if (artist?.name) {
+                element.html(artist.name);
+                new ArtistHover(artist, element, undefined, null, false)
+            }
+        }
+        function getSongType(song, short = false) {
+            let songTypeFull = song.song.number == 0 ? '' : song.song.number;
+            if (song.song.rebroadcast) songTypeFull += ' R';
+            if (song.song.dub) songTypeFull += ' D';
+            switch (song.song.type) {
+                case 1: return `${!short ? 'Opening' : 'OP'} ${songTypeFull}`; break;
+                case 2: return `${!short ? 'Ending' : 'ED'} ${songTypeFull}`; break;
+                default: return `${!short ? 'Insert' : 'INS'} ${songTypeFull}`;
+            }
+        }
 
         const handleSocketCommand = (event) => {
             console.log(event)
@@ -868,17 +876,15 @@ const htmlContent = `
                     }))
                 }
 
-                const songArtist = song.songEntry.artist;
-
-                let songTypeFull = song.song.number == 0 ? '&nbsp;' : `${song.song.number}&nbsp;`;
-                if (song.song.rebroadcast == 1) songTypeFull += 'R&nbsp;';
-                if (song.song.dub == 1) songTypeFull += 'D';
-                let songType;
-                switch (song.song.type) {
-                    case 1: songType = `<div class="elNSLSongType"><span class="elNSLSongTypeOP">OP</span>&nbsp;<span>${songTypeFull}</span></div>`; break;
-                    case 2: songType = `<div class="elNSLSongType"><span class="elNSLSongTypeED">ED</span>&nbsp;<span>${songTypeFull}</span></div>`; break;
-                    default: songType = `<div class="elNSLSongType"><span class="elNSLSongTypeINS">INS</span>&nbsp;<span>${songTypeFull}</span></div>`;
-                }
+                let songType = `<div class="elNSLSongType">${getSongType(song, true)}</div>`;
+                // let songTypeFull = song.song.number == 0 ? '&nbsp;' : `${song.song.number}&nbsp;`;
+                // if (song.song.rebroadcast == 1) songTypeFull += 'R&nbsp;';
+                // if (song.song.dub == 1) songTypeFull += 'D';
+                // switch (song.song.type) {
+                //     case 1: songType = `<div class="elNSLSongType"><span class="elNSLSongTypeOP">OP</span>&nbsp;<span>${songTypeFull}</span></div>`; break;
+                //     case 2: songType = `<div class="elNSLSongType"><span class="elNSLSongTypeED">ED</span>&nbsp;<span>${songTypeFull}</span></div>`; break;
+                //     default: songType = `<div class="elNSLSongType"><span class="elNSLSongTypeINS">INS</span>&nbsp;<span>${songTypeFull}</span></div>`;
+                // }
 
                 let songCheckbox = $('<input>', {
                     type: 'checkbox',
@@ -917,15 +923,16 @@ const htmlContent = `
                     }
                 }
 
-                const artistContainer = template.find('.elNSLSongSongArtist');
-                new ArtistHover(songArtist, artistContainer, undefined, null, false);
+                getArtistHover(song.songEntry.artist, template.find('.elNSLSongSongArtist'))
+                // const artistContainer = template.find('.elNSLSongSongArtist');
+                // new ArtistHover(songArtist, artistContainer, undefined, null, false);
 
                 template.attr('data-song-id', song.songEntry.songId);
                 template.find('.elSongSongType').html(songType)
                 template.find('.elSongAnimeStatus').html(animeStatus)
                 template.find('.elSongAnimeName').html(animeName)
                 template.find('.elNSLSongSongName').html(song.songEntry.name)
-                template.find('.elNSLSongSongArtist').html(songArtist?.name || '')
+                // template.find('.elNSLSongSongArtist').html(song.songEntry.artist?.name || '')
                 template.find('.elNSLSongInfoButton').on('click', (e) => showModal(i, false))
                 template.find('.elNSLSongPlayButton').on('click', (e) => {
                     loadSong(song.songEntry.songId)
@@ -981,15 +988,7 @@ const htmlContent = `
 
         function updateModal(type, song) {
             if (type == 'song') {
-                let songType;
-                let songTypeFull = song.song.number == 0 ? '' : song.song.number;
-                if (song.song.rebroadcast) songTypeFull += ' R';
-                if (song.song.dub) songTypeFull += ' D';
-                switch (song.song.type) {
-                    case 1: songType = `Opening ${songTypeFull}`; break;
-                    case 2: songType = `Ending ${songTypeFull}`; break;
-                    default: songType = `Insert ${songTypeFull}`;
-                }
+                let songType = getSongType(song, false);
 
                 const animeName = $('<div>', {
                     class: 'elNSLSongAnimeNameMain',
@@ -1017,17 +1016,20 @@ const htmlContent = `
                 $('.elNSLModalSongAnnSongId').html(song.amqSong.annSongId)
                 $('.elNSLModalSongSongId').html(song.amqSong.songId)
 
-                const modalSongArtist = $('.elNSLModalSongArtist');
-                modalSongArtist.html(songArtist);
-                if (song.songEntry.artist) new ArtistHover(song.songEntry.artist, modalSongArtist, undefined, null, false);
+                getArtistHover(song.songEntry.artist, $('.elNSLModalSongArtist'));
+                getArtistHover(song.songEntry.composer, $('.elNSLModalSongComposer'));
+                getArtistHover(song.songEntry.arranger, $('.elNSLModalSongArranger'));
+                // const modalSongArtist = $('.elNSLModalSongArtist');
+                // modalSongArtist.html(songArtist);
+                // if (song.songEntry.artist) new ArtistHover(song.songEntry.artist, modalSongArtist, undefined, null, false);
 
-                const modalSongComposer = $('.elNSLModalSongComposer');
-                modalSongComposer.html(songComposer);
-                if (song.songEntry.composer) new ArtistHover(song.songEntry.composer, modalSongComposer, undefined, null, false);
+                // const modalSongComposer = $('.elNSLModalSongComposer');
+                // modalSongComposer.html(songComposer);
+                // if (song.songEntry.composer) new ArtistHover(song.songEntry.composer, modalSongComposer, undefined, null, false);
 
-                const modalSongArranger = $('.elNSLModalSongArranger');
-                modalSongArranger.html(songArranger);
-                if (song.songEntry.arranger) new ArtistHover(song.songEntry.arranger, modalSongArranger, undefined, null, false);
+                // const modalSongArranger = $('.elNSLModalSongArranger');
+                // modalSongArranger.html(songArranger);
+                // if (song.songEntry.arranger) new ArtistHover(song.songEntry.arranger, modalSongArranger, undefined, null, false);
             } else if (type == 'anime') {
                 $('.elNSLModalSongAnimeLinks').html('');
                 if (song.amqAnime.annId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
