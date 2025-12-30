@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.14
+// @version      0.15.2
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -19,7 +19,7 @@
 // @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
 
-const version = '0.14';
+const version = '0.15.2';
 
 GM_addStyle(`
     .svg-icon { width: 1em; height: 1em; vertical-align: -0.125em; fill: white; }
