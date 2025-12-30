@@ -24,12 +24,12 @@ const version = '0.14';
 GM_addStyle(`
     .svg-icon { width: 1em; height: 1em; vertical-align: -0.125em; fill: white; }
     .svg-icon-black { fill: black; }
-    .elNSLMain { position: absolute; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 100; }
+    .elNSLMain { position: absolute; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 100; color: #b3b3b3; }
     .elNSLMainContainer { max-width: 1200px; position: relative; z-index: 1000; padding-bottom: 50px; }
-    .elNSLHeaderContainer { background-color: #1b1b1bd6; width: 100%; padding: 16px; }
-    .elNSLHeaderContainer h2 { font-size: 36px; text-align: center; margin: 0 !important; }
+    .elNSLHeaderContainer { background-color: #1b1b1bd6; width: 100%; padding: 4px; text-align: center; }
+    .elNSLHeaderContainer h2 { font-size: 36px; margin: 0 !important; }
     .elNSLEntryContainer { display: flex; flex-direction: row; box-shadow: none !important; }
-    .elNSLEntryContainerInner { padding: 16px !important; mask: 16px !important; }
+    .elNSLEntryContainerInner { padding: 16px !important; mask: 16px !important; overflow: auto; scrollbar-color: #b3b3b3 #1b1b1b; scrollbar-width: thin;}
     .elNSLFilterContainer { flex-basis: 400px; }
     .elNSLFormFilter { color: white; }
     .elNSLFormGroup { margin-bottom: 16px; background-color: #1b1b1b; border-radius: 4px; box-shadow: 0 0px 5px 1px rgb(0, 0, 0); padding: 0px 8px 8px 8px; position: relative; }
@@ -61,7 +61,7 @@ GM_addStyle(`
     .alignCenter { text-align: center; }
     .elNSLSongEntry { margin-top: 8px !important; padding: 8px !important; }
     .elNSLSongEntry:first-child { margin-top: 0 !important; padding: 8px !important; }
-    .elNSLSongEntryPlaying { margin-left: 8px; margin-right: -8px; }
+    .elNSLSongEntryPlaying { margin-left: 8px; margin-right: -8px; box-shadow: 0 0px 5px 1px #6d6d6d !important; }
     .elNSLSongShowMore { width: 100%; padding: 16px; text-align: center; }
     .elNSLSongShowMoreButton:hover { cursor: pointer; }
     .elNSLSongRow { display: grid; grid-template-columns: 55px 1fr 35px 30px 30px; gap: 4px; }
@@ -128,9 +128,9 @@ GM_addStyle(`
 const htmlContent = `
     <div class="elNSLMain hidden">
         <div class="elMainContainer elNSLMainContainer">
-            <div class="elNSLHeaderContainer"><h2>New Song Library ${version}</h2></div>
             <div class="elEntryContainer elNSLEntryContainer">
                 <div class="elEntryContainerInner elNSLEntryContainerInner elNSLFilterContainer">
+                    <div class="elNSLHeaderContainer"><h5>New Song Library ${version}</h5></div>
                     <form id="elNSLFilterForm" class="elNSLFormFilter">
                         <div class="elNSLFormGroup">
                             <div class="elNSLFormGroupLegend">Stats</div>
@@ -169,7 +169,7 @@ const htmlContent = `
                             <div class="elNSLFormCheckboxGroup elNSLFormCheckboxGroupHalf">
                                 <div>
                                     <div>
-                                        <input type="checkbox" name="ptw" id="ptw" class="elNSLFormGroupInput">
+                                        <input type="checkbox" name="ptw" id="ptw" class="elNSLFormGroupInput" checked>
                                         <label for="ptw" class="elNSLFormGroupLabel">Plan to Watch</label>
                                     </div>
                                     <div>
@@ -183,15 +183,15 @@ const htmlContent = `
                                 </div>
                                 <div>
                                     <div>
-                                        <input type="checkbox" name="onhold" id="onhold" class="elNSLFormGroupInput">
+                                        <input type="checkbox" name="onhold" id="onhold" class="elNSLFormGroupInput" checked>
                                         <label for="onhold" class="elNSLFormGroupLabel">On Hold</label>
                                     </div>
                                     <div>
-                                        <input type="checkbox" name="dropped" id="dropped" class="elNSLFormGroupInput">
+                                        <input type="checkbox" name="dropped" id="dropped" class="elNSLFormGroupInput" checked>
                                         <label for="dropped" class="elNSLFormGroupLabel">Dropped</label>
                                     </div>
                                     <div>
-                                        <input type="checkbox" name="other" id="other" class="elNSLFormGroupInput">
+                                        <input type="checkbox" name="other" id="other" class="elNSLFormGroupInput" checked>
                                         <label for="other" class="elNSLFormGroupLabel">Other</label>
                                     </div>
                                 </div>
@@ -260,11 +260,11 @@ const htmlContent = `
                                 </div>
                                 <div>
                                     <div>
-                                        <input type="checkbox" name="rebroadcast" id="rebroadcast" class="elNSLFormGroupInput">
+                                        <input type="checkbox" name="rebroadcast" id="rebroadcast" class="elNSLFormGroupInput" checked>
                                         <label for="rebroadcast" class="elNSLFormGroupLabel">Rebroadcast</label>
                                     </div>
                                     <div>
-                                        <input type="checkbox" name="dub" id="dub" class="elNSLFormGroupInput">
+                                        <input type="checkbox" name="dub" id="dub" class="elNSLFormGroupInput" checked>
                                         <label for="dub" class="elNSLFormGroupLabel">Dub</label>
                                     </div>
                                 </div>
@@ -471,7 +471,7 @@ const htmlContent = `
         let sortedSongsData;
         let page = 0;
 
-        let currentTrackSongId = -1;
+        let currentTrack = null;
         let isPlaying = false;
         let isRepeating = false;
         let lastVolume = 0.8;
@@ -481,20 +481,36 @@ const htmlContent = `
         let isSeeking = false;
         let isVolumeSeeking = false;
 
-        function getSongBySongId(songId) {
-            return sortedSongsData.find(songData => songData.songEntry.songId == songId);
+        function getSong(song) {
+            if (song?.animeEntry?.annId) return sortedSongsData.find(songData => songData.songEntry.songId == song.songEntry.songId && songData.animeEntry.annId == song.animeEntry.annId);
+            else return sortedSongsData.find(songData => songData.songEntry.songId == song.songId && songData.animeEntry.annId == song.annId);
         }
         function getAnimeByAnnId(annId) {
             return sortedSongsData.find(songData => songData.animeEntry.annId == annId);
         }
+        function getArtistHover(artist, element) {
+            element.html('-');
+            if (artist?.name) {
+                element.html(artist.name);
+                new ArtistHover(artist, element, undefined, null, false)
+            }
+        }
+        function getSongType(song, short = false) {
+            let songTypeFull = song.song.number == 0 ? '' : ` ${song.song.number}`;
+            if (song.song.rebroadcast) songTypeFull += ' R';
+            if (song.song.dub) songTypeFull += ' D';
+            switch (song.song.type) {
+                case 1: return !short ? `Opening${songTypeFull}` : `OP${songTypeFull}`; break;
+                case 2: return !short ? `Ending${songTypeFull}` : `ED${songTypeFull}`; break;
+                default: return !short ? `Insert${songTypeFull}` : `INS${songTypeFull}`; break;
+            }
+        }
 
-        function loadSong(songId) {
-            if (currentTrackSongId == songId && isPlaying) { togglePlay(); return; }
+        function loadSong(song) {
+            if (currentTrack?.songEntry.songId == song.songEntry.songId && isPlaying) { togglePlay(); return; }
 
-            const songData = getSongBySongId(songId);
-
-            if (songData?.amqSong == null) globalObj[socketName]._socket.emit("command", { type: "library", command: "get song extended info", data: { annSongId: songData.song.annSongId, includeFileNames: true } });
-            else loadTrack(songData, songData.amqSong.fileName);
+            if (!("amqSong" in song)) globalObj[socketName]._socket.emit("command", { type: "library", command: "get song extended info", data: { annSongId: song.song.annSongId, includeFileNames: true } });
+            else loadTrack(song, song.amqSong.fileName);
         }
 
         function loadTrack(songData, audioSource) {
@@ -521,7 +537,7 @@ const htmlContent = `
 
             $('.elNSLAudioPlayerProgressTimeEnd').text(formatTime(audio.duration));
 
-            currentTrackSongId = songData.songEntry.songId;
+            currentTrack = songData;
 
             if (!isPlaying) {
                 togglePlay();
@@ -529,7 +545,7 @@ const htmlContent = `
                 audio.play()
                     .then(() => {
                         setPlayButtonIcon(true);
-                        $(`[data-song-id="${getSongBySongId(currentTrackSongId).songEntry.songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
+                        $(`[data-song-id="${getSong(currentTrack).songEntry.songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
                     })
             }
         }
@@ -549,12 +565,12 @@ const htmlContent = `
             if (isPlaying) {
                 audio.pause();
                 setPlayButtonIcon(false);
-                if (getSongBySongId(currentTrackSongId)) $(`[data-song-id="${getSongBySongId(currentTrackSongId).songEntry.songId}"]`).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>');
+                if (getSong(currentTrack)) $(`[data-song-id="${getSong(currentTrack).songEntry.songId}"]`).removeClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80L0 432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg>');
             } else {
                 audio.play()
                     .then(() => {
                         setPlayButtonIcon(true);
-                        if (getSongBySongId(currentTrackSongId)) $(`[data-song-id="${getSongBySongId(currentTrackSongId).songEntry.songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
+                        if (getSong(currentTrack)) $(`[data-song-id="${getSong(currentTrack).songEntry.songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
                     })
                     .catch(e => {
                         console.error("Playback error:", e);
@@ -567,25 +583,23 @@ const htmlContent = `
 
         function prevTrack() {
             togglePlay();
-            let songIndex = (sortedSongsData.findIndex(songData => songData.songEntry.songId == currentTrackSongId)) - 1;
+            let songIndex = (sortedSongsData.findIndex(songData => songData.animeEntry.annId == currentTrack.animeEntry.annId && songData.songEntry.songId == currentTrack.songEntry.songId)) - 1;
             if (songIndex < 0) songIndex = sortedSongsData.length - 1;
             if (songIndex == -1) songIndex = 0
-            loadSong(sortedSongsData[songIndex].songEntry.songId);
+            loadSong(sortedSongsData[songIndex]);
             if (isPlaying) audio.play();
         }
 
         function nextTrack() {
             togglePlay();
-            let songIndex = (sortedSongsData.findIndex(songData => songData.songEntry.songId == currentTrackSongId)) + 1;
+            let songIndex = (sortedSongsData.findIndex(songData => songData.animeEntry.annId == currentTrack.animeEntry.annId && songData.songEntry.songId == currentTrack.songEntry.songId)) + 1;
             if (songIndex >= sortedSongsData.length) songIndex = 0;
             if (songIndex == -1) songIndex = 0
-            loadSong(sortedSongsData[songIndex].songEntry.songId);
+            loadSong(sortedSongsData[songIndex]);
             if (isPlaying) audio.play();
         }
 
-        function updateDuration() {
-            $('.elNSLAudioPlayerProgressTimeEnd').text(formatTime(audio.duration));
-        }
+        function updateDuration() { $('.elNSLAudioPlayerProgressTimeEnd').text(formatTime(audio.duration)); }
 
         function setProgress(e) {
             const rect = $('.elNSLAudioPlayerProgressBar')[0].getBoundingClientRect();
@@ -642,26 +656,6 @@ const htmlContent = `
             GM_setValue("playerStatusList", JSON.stringify(storageSave));
         }
 
-        function getTitleName(song) { }
-        function getSongName(song) { }
-        function getArtistHover(artist, element) {
-            element.html('-');
-            if (artist?.name) {
-                element.html(artist.name);
-                new ArtistHover(artist, element, undefined, null, false)
-            }
-        }
-        function getSongType(song, short = false) {
-            let songTypeFull = song.song.number == 0 ? '' : song.song.number;
-            if (song.song.rebroadcast) songTypeFull += ' R';
-            if (song.song.dub) songTypeFull += ' D';
-            switch (song.song.type) {
-                case 1: return `${!short ? 'Opening' : 'OP'} ${songTypeFull}`; break;
-                case 2: return `${!short ? 'Ending' : 'ED'} ${songTypeFull}`; break;
-                default: return `${!short ? 'Insert' : 'INS'} ${songTypeFull}`;
-            }
-        }
-
         const handleSocketCommand = (event) => {
             console.log(event)
 
@@ -670,7 +664,7 @@ const htmlContent = `
                 case 'get song extended info':
                     const song = event.data;
 
-                    const songData = getSongBySongId(song.songId);
+                    const songData = getSong(song);
                     songData.amqSong = song;
 
                     if ($('#elNSLModal').hasClass('in')) {
@@ -935,16 +929,16 @@ const htmlContent = `
                 // template.find('.elNSLSongSongArtist').html(song.songEntry.artist?.name || '')
                 template.find('.elNSLSongInfoButton').on('click', (e) => showModal(i, false))
                 template.find('.elNSLSongPlayButton').on('click', (e) => {
-                    loadSong(song.songEntry.songId)
+                    loadSong(song)
                 })
 
                 template.find('#songRate').on('change', function () {
                     var selectedValue = $(this).val();
 
                     switch (selectedValue) {
-                        case 'songRateLike': globalObj[socketName]._socket.emit("command", { type: "library", command: "set song like status", data: { annSongId: song.song.annSongId, stateId: 1 } }); (getSongBySongId(song.songEntry.songId)).songEntry.status = 1; break;
-                        case 'songRateUnrated': globalObj[socketName]._socket.emit("command", { type: "library", command: "set song like status", data: { annSongId: song.song.annSongId, stateId: 0 } }); (getSongBySongId(song.songEntry.songId)).songEntry.status = 0; break;
-                        case 'songRateDislike': globalObj[socketName]._socket.emit("command", { type: "library", command: "set song like status", data: { annSongId: song.song.annSongId, stateId: 2 } }); (getSongBySongId(song.songEntry.songId)).songEntry.status = 2; break;
+                        case 'songRateLike': globalObj[socketName]._socket.emit("command", { type: "library", command: "set song like status", data: { annSongId: song.song.annSongId, stateId: 1 } }); (getSong(song)).songEntry.status = 1; break;
+                        case 'songRateUnrated': globalObj[socketName]._socket.emit("command", { type: "library", command: "set song like status", data: { annSongId: song.song.annSongId, stateId: 0 } }); (getSong(song)).songEntry.status = 0; break;
+                        case 'songRateDislike': globalObj[socketName]._socket.emit("command", { type: "library", command: "set song like status", data: { annSongId: song.song.annSongId, stateId: 2 } }); (getSong(song)).songEntry.status = 2; break;
                     }
                 });
 
@@ -962,9 +956,11 @@ const htmlContent = `
 
             $('#newLibraryClusterId0').append(fragment);
 
-            const songData = getSongBySongId(currentTrackSongId);
-            if (songData) {
-                $(`[data-song-id="${songData.songEntry.songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
+            if (currentTrack !== null) {
+                const songData = getSong(currentTrack);
+                if (songData) {
+                    $(`[data-song-id="${songData.songEntry.songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
+                }
             }
         }
 
@@ -978,7 +974,7 @@ const htmlContent = `
                 }
             });
 
-            if (currentTrackSongId !== -1 && getSongBySongId(currentTrackSongId)) $(`[data-song-id="${getSongBySongId(currentTrackSongId).songEntry.songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
+            if (currentTrack !== null && getSong(currentTrack)) $(`[data-song-id="${getSong(currentTrack).songEntry.songId}"]`).addClass('elNSLSongEntryPlaying').find('.elNSLSongPlayButton').html('<svg class="svg-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512"><path d="M48 64C21.5 64 0 85.5 0 112L0 400c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48L48 64zm192 0c-26.5 0-48 21.5-48 48l0 288c0 26.5 21.5 48 48 48l32 0c26.5 0 48-21.5 48-48l0-288c0-26.5-21.5-48-48-48l-32 0z"/></svg>');
 
             $('#elNSLSongsCount').html(sortedSongsData.length)
             $('#elNSLAnimesCount').html([...new Set(sortedSongsData.map(anime => anime.animeEntry.annId))].length)
@@ -1001,10 +997,6 @@ const htmlContent = `
                     }))
                 }
 
-                const songArtist = song.songEntry.artist?.name || '';
-                const songComposer = song.songEntry.composer?.name || '';
-                const songArranger = song.songEntry.arranger?.name || '';
-
                 const videoSrc = '720' in song.amqSong.fileNameMap ? song.amqSong.fileNameMap['720'] : '480' in song.amqSong.fileNameMap ? song.amqSong.fileNameMap['480'] : null;
 
                 $('#elNSLModalVideo')[0].src = `https://naedist.animemusicquiz.com/${videoSrc}`;
@@ -1019,17 +1011,6 @@ const htmlContent = `
                 getArtistHover(song.songEntry.artist, $('.elNSLModalSongArtist'));
                 getArtistHover(song.songEntry.composer, $('.elNSLModalSongComposer'));
                 getArtistHover(song.songEntry.arranger, $('.elNSLModalSongArranger'));
-                // const modalSongArtist = $('.elNSLModalSongArtist');
-                // modalSongArtist.html(songArtist);
-                // if (song.songEntry.artist) new ArtistHover(song.songEntry.artist, modalSongArtist, undefined, null, false);
-
-                // const modalSongComposer = $('.elNSLModalSongComposer');
-                // modalSongComposer.html(songComposer);
-                // if (song.songEntry.composer) new ArtistHover(song.songEntry.composer, modalSongComposer, undefined, null, false);
-
-                // const modalSongArranger = $('.elNSLModalSongArranger');
-                // modalSongArranger.html(songArranger);
-                // if (song.songEntry.arranger) new ArtistHover(song.songEntry.arranger, modalSongArranger, undefined, null, false);
             } else if (type == 'anime') {
                 $('.elNSLModalSongAnimeLinks').html('');
                 if (song.amqAnime.annId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
@@ -1065,10 +1046,10 @@ const htmlContent = `
         function showModal(index, isOpened) {
             const current = sortedSongsData[index];
 
-            if (!current?.amqSong) globalObj[socketName]._socket.emit("command", { type: "library", command: "get song extended info", data: { annSongId: current.song.annSongId, includeFileNames: true } });
+            if (!("amqSong" in current)) globalObj[socketName]._socket.emit("command", { type: "library", command: "get song extended info", data: { annSongId: current.song.annSongId, includeFileNames: true } });
             else updateModal("song", current);
 
-            if (!current?.amqAnime) globalObj[socketName]._socket.emit("command", { type: "library", command: "get anime extended info", data: { annId: current.animeEntry.annId, includeFileNames: true } });
+            if (!("amqAnime" in current)) globalObj[socketName]._socket.emit("command", { type: "library", command: "get anime extended info", data: { annId: current.animeEntry.annId, includeFileNames: true } });
             else updateModal("anime", current);
 
             if (!isOpened) $('#elNSLModal').modal("show");
@@ -1115,73 +1096,73 @@ const htmlContent = `
             const intervalId = setInterval(checkForElement, 100);
         }
 
-        $('#gameContainer').append(htmlContent);
+        function setup() {
+            $('#gameContainer').append(htmlContent);
 
-        $('#rightMenuBarPartContainer').append(
-            $('<div>', {
-                class: 'rightLeftButtonBottom clickAble',
-                css: {
-                    'right': '205px',
-                    'position': 'absolute',
-                    'bottom': '0px',
-                    'right': '180px',
-                    'font-size': '40px',
-                    'height': '45px',
-                    'width': '112px',
-                    'z-index': '-1',
-                },
-            }).append(
-                $('<span>', {
-                    id: 'optionGlyphIcon',
-                    class: 'glyphicon glyphicon-music',
-                    'aria-hidden': 'true',
+            $('#rightMenuBarPartContainer').append(
+                $('<div>', {
+                    class: 'rightLeftButtonBottom clickAble',
+                    css: {
+                        'right': '205px',
+                        'position': 'absolute',
+                        'bottom': '0px',
+                        'right': '180px',
+                        'font-size': '40px',
+                        'height': '45px',
+                        'width': '112px',
+                        'z-index': '-1',
+                    },
+                }).append(
+                    $('<span>', {
+                        id: 'optionGlyphIcon',
+                        class: 'glyphicon glyphicon-music',
+                        'aria-hidden': 'true',
+                    })
+                ).click(function () {
+                    $('.elNSLMain').toggleClass('hidden');
                 })
-            ).click(function () {
-                $('.elNSLMain').toggleClass('hidden');
-            })
-        );
+            );
 
 
-        $('.elNSLAudioPlayerPlayBtn').on('click', () => togglePlay());
-        $('.elNSLAudioPlayerRepeatBtn').on('click', () => toggleRepeat());
-        $('.elNSLAudioPlayerPrevBtn').on('click', () => prevTrack());
-        $('.elNSLAudioPlayerNextBtn').on('click', () => nextTrack());
-        $('.elNSLAudioPlayerVolumeIcon').on('click', () => toggleMute());
+            $('.elNSLAudioPlayerPlayBtn').on('click', () => togglePlay());
+            $('.elNSLAudioPlayerRepeatBtn').on('click', () => toggleRepeat());
+            $('.elNSLAudioPlayerPrevBtn').on('click', () => prevTrack());
+            $('.elNSLAudioPlayerNextBtn').on('click', () => nextTrack());
+            $('.elNSLAudioPlayerVolumeIcon').on('click', () => toggleMute());
 
-        audio.addEventListener('timeupdate', () => updateProgress());
-        audio.addEventListener('ended', () => isRepeating ? audio.play() : nextTrack());
-        audio.addEventListener('loadedmetadata', () => updateDuration());
+            audio.addEventListener('timeupdate', () => updateProgress());
+            audio.addEventListener('ended', () => isRepeating ? audio.play() : nextTrack());
+            audio.addEventListener('loadedmetadata', () => updateDuration());
 
-        $('.elNSLAudioPlayerProgressBar').on('mousedown', (e) => { isSeeking = true; setProgress(e); });
-        $('.elNSLAudioPlayerVolumeBar').on('mousedown', (e) => { isVolumeSeeking = true; setVolume(e); });
+            $('.elNSLAudioPlayerProgressBar').on('mousedown', (e) => { isSeeking = true; setProgress(e); });
+            $('.elNSLAudioPlayerVolumeBar').on('mousedown', (e) => { isVolumeSeeking = true; setVolume(e); });
 
-        $(document).on('mousemove', (e) => {
-            if (isSeeking) {
-                setProgress(e);
-            } else if (isVolumeSeeking) {
-                setVolume(e);
-            }
-        });
+            $(document).on('mousemove', (e) => {
+                if (isSeeking) {
+                    setProgress(e);
+                } else if (isVolumeSeeking) {
+                    setVolume(e);
+                }
+            });
 
-        $(document).on('mouseup', () => {
-            isSeeking = false;
-            isVolumeSeeking = false;
-        });
+            $(document).on('mouseup', () => {
+                isSeeking = false;
+                isVolumeSeeking = false;
+            });
 
-        $('#elNSLFilterForm').on('submit', (e) => {
-            e.preventDefault();
-            setPage(0);
-            renderSongList(e.target);
-        });
+            $('#elNSLFilterForm').on('submit', (e) => {
+                e.preventDefault();
+                setPage(0);
+                renderSongList(e.target);
+            });
 
-        $("#elNSLModal").on('hide.bs.modal', function () {
-            $("#elNSLModalVideo")[0].pause();
-            $("#elNSLModalVideo")[0].src = '';
-        });
+            $("#elNSLModal").on('hide.bs.modal', function () {
+                $("#elNSLModalVideo")[0].pause();
+                $("#elNSLModalVideo")[0].src = '';
+            });
+        }
 
         globalObj[socketName]._socket.addEventListener("command", handleSocketCommand);
-
-        // 
 
         function createSongMap() {
             songMap = Object.values(libraryCacheHandler.animeCache).map(anime => {
@@ -1233,6 +1214,7 @@ const htmlContent = `
                 }).flat();
             }).flat();
 
+            setup();
             renderSongList();
 
             globalObj[socketName]._socket.emit("command", { type: "library", command: "get anime status list" });
@@ -1253,7 +1235,6 @@ const htmlContent = `
 
     const waitForInitialLoad = () => {
         return new Promise((resolve, reject) => {
-            // const loadingScreen = document.getElementById("loadingScreen");
             if (!document.getElementById("loadingScreen")) return reject(new Error("Loading screen not found"));
             new MutationObserver((_record, observer) => {
                 try { observer.disconnect(); resolve(); }
