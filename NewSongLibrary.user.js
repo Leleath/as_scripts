@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.15.2
+// @version      0.16
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -19,13 +19,29 @@
 // @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
 
-const version = '0.15.2';
+const version = '0.16';
 
 GM_addStyle(`
+    .modal-body { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .elNSLModalVideoDiv { position: relative; border-radius: 4px; overflow: hidden; }
+    .elNSLModalCard { background: #262626; border-radius: 4px; padding: 4px 6px; }
+    .elNSLModalGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .elNSLModalGridSmall { grid-template-columns: repeat(3, 1fr); }
+    .elNSLModalLabel { font-size: 11px; opacity: .6; text-transform: uppercase; }
+    .elNSLModalMuted { opacity: .7; margin-top: 4px; }
+    .elNSLModalTags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .elNSLModalTag { font-size: 12px; padding: 4px 8px; border-radius: 999px; background: #333; }
+    .elNSLModalSongLine { display: flex; align-items: center; gap: 4px; white-space: nowrap; padding-top: 8px; padding-bottom: 8px;}
+    .elNSLModalSongLine h4 { font-size: 15px; margin: 0; overflow: hidden; text-overflow: ellipsis; }
+    .elNSLModalSongLine p { margin: 0; opacity: 0.7; font-size: 13px; }
+    .elNSLModalSongLine span { opacity: 0.4; }   
+    .elNSLModalCardLinks { display: flex; gap: 4px; }
+    .elNSLModalCardLinks a { color: #7aa2ff; text-decoration: none; font-size: 14px; }
+
     .svg-icon { width: 1em; height: 1em; vertical-align: -0.125em; fill: white; }
     .svg-icon-black { fill: black; }
     .elNSLMain { position: absolute; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); z-index: 100; color: #b3b3b3; }
-    .elNSLMainContainer { max-width: 1200px; position: relative; z-index: 1000; padding-bottom: 50px; }
+    .elNSLMainContainer { max-width: 1200px; position: relative; z-index: 1000; padding-bottom: 50px; margin: 0 auto; }
     .elNSLHeaderContainer { background-color: #1b1b1bd6; width: 100%; padding: 4px; text-align: center; }
     .elNSLHeaderContainer h2 { font-size: 36px; margin: 0 !important; }
     .elNSLEntryContainer { display: flex; flex-direction: row; box-shadow: none !important; }
@@ -234,10 +250,10 @@ const htmlContent = `
                             <div class="elNSLFormGroupLegend">Anime Year</div>
                             <div class="elNSLFormCheckboxGroup elNSLFormCheckboxGroupHalf">
                                 <div>
-                                    From <input type="number" value="1900" min="1900" max="2025" class="elNSLFormSearch" name="yearFrom" id="yearFrom">
+                                    From <input type="number" value="1900" min="1900" max="2026" class="elNSLFormSearch" name="yearFrom" id="yearFrom">
                                 </div>
                                 <div>
-                                    To <input type="number" value="2025" min="1900" max="2025"  class="elNSLFormSearch" name="yearTo" id="yearTo">
+                                    To <input type="number" value="2026" min="1900" max="2026"  class="elNSLFormSearch" name="yearTo" id="yearTo">
                                 </div>
                             </div>
                         </div>
@@ -371,60 +387,75 @@ const htmlContent = `
                     <h3 class="modal-title"><span class="elNSLModalSongAnimeJP"></span></h3>
                 </div>
                 <div class="modal-body">
-                    <video class="elNSLModalVideo" id="elNSLModalVideo" autoplay controls>Your browser does not support the video tag.</video>
-                    <div class="elNSLModalSongAnimePanel"><span class="elNSLModalSongAnimeEN"></span></div>
-                    <table class="elNSLModalSongAnimePanelTable">
-                        <tbody>
-                            <tr>
-                                <th colspan="2">SONG NAME</th>
-                                <th colspan="2">ARTIST</th>
-                            </tr>
-                            <tr>
-                                <td colspan="2"><span class="elNSLModalSongName"></span></td>
-                                <td colspan="2"><span class="elNSLModalSongArtist"></span></td>
-                            </tr>
-                            <tr>
-                                <th colspan="2">COMPOSER</th>
-                                <th colspan="2">ARRANGER</th>
-                            </tr>
-                            <tr>
-                                <td colspan="2"><span class="elNSLModalSongComposer"></span></td>
-                                <td colspan="2"><span class="elNSLModalSongArranger"></span></td>
-                            </tr>
-                            <tr>
-                                <th colspan="2">DIFFICULTY</th>
-                                <th colspan="2">LINKS</th>
-                            </tr>
-                            <tr>
-                                <td colspan="2"><span class="elNSLModalSongDifficulty"></span> / <span class="elNSLModalSongDifficultyOwn"></span></td>
-                                <td colspan="2"><span class="elNSLModalSongAnimeLinks"></span></td>
-                            </tr>
-                            <tr>
-                                <th>AnnId</th>
-                                <th>AnnSongId</th>
-                                <th>SongId</th>
-                                <th>-</th>
-                            </tr>
-                            <tr>
-                                <td><span class="elNSLModalSongAnnId"></span></td>
-                                <td><span class="elNSLModalSongAnnSongId"></span></td>
-                                <td><span class="elNSLModalSongSongId"></span></td>
-                                <td>-</td>
-                            </tr>
-                            <tr>
-                                <th colspan="4">Genres</th>
-                            </tr>
-                            <tr>
-                                <td colspan="4"><span class="elNSLModalSongGenres"></span></td>
-                            </tr>
-                            <tr>
-                                <th colspan="4">TAGS</th>
-                            </tr>
-                            <tr>
-                                <td colspan="4"><span class="elNSLModalSongTags"></span></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="elNSLModalSongAnimePanel"><span class="elNSLModalSongAnimeEN"></span></div>
+                
+                    <div class="elNSLModalVideoDiv">
+                        <video class="elNSLModalVideo" id="elNSLModalVideo" autoplay controls>Your browser does not support the video tag.</video>
+                    </div>
+
+                    <section class="elNSLModalCard elNSLModalSongLine">
+                        <h4 class="elNSLModalSongName">VOYAGER ~Hizuke no Nai Bohyou~</h4>
+                        <span>-</span>
+                        <p class="elNSLModalMuted elNSLModalSongArtist">Megumi Hayashibara</p>
+                    </section>
+
+                    <section class="elNSLModalGrid">
+                        <div>
+                            <span class="elNSLModalLabel">Composer</span>
+                            <p class="elNSLModalSongComposer">Yumi Matsutoya</p>
+                        </div>
+                        <div>
+                            <span class="elNSLModalLabel">Arranger</span>
+                            <p class="elNSLModalSongArranger">CHOKKAKU</p>
+                        </div>
+                        <div>
+                            <span class="elNSLModalLabel">Difficulty</span>
+                            <p><span class="elNSLModalSongDifficulty">0</span> / <span class="elNSLModalSongDifficultyOwn">0</span></p>
+                        </div>
+                    </section>
+
+                    <section class="elNSLModalCard">
+                        <span class="elNSLModalLabel">Genres</span>
+                        <div class="elNSLModalTags elNSLModalSongGenres">
+                            <span class="elNSLModalTag">Action</span>
+                            <span class="elNSLModalTag">Drama</span>
+                            <span class="elNSLModalTag">Mecha</span>
+                            <span class="elNSLModalTag">Psychological</span>
+                            <span class="elNSLModalTag">Sci-Fi</span>
+                        </div>
+                    </section>
+
+                    <section class="elNSLModalCard">
+                        <span class="elNSLModalLabel">Tags</span>
+                        <div class="elNSLModalTags elNSLModalSongTags">
+                            <span class="elNSLModalTag">Post-Apocalyptic</span>
+                            <span class="elNSLModalTag">Robots</span>
+                            <span class="elNSLModalTag">Time Skip</span>
+                            <span class="elNSLModalTag">Philosophy</span>
+                            <span class="elNSLModalTag">Cosmic Horror</span>
+                        </div>
+                    </section>
+
+                    <section class="elNSLModalGrid elNSLModalGridSmall">
+                        <div>
+                            <span class="elNSLModalLabel">AnnId</span>
+                            <p class="elNSLModalSongAnnId">8423</p>
+                        </div>
+                        <div>
+                            <span class="elNSLModalLabel">AnnSongId</span>
+                            <p class="elNSLModalSongAnnSongId">34653</p>
+                        </div>
+                        <div>
+                            <span class="elNSLModalLabel">SongId</span>
+                            <p class="elNSLModalSongSongId">67388</p>
+                        </div>
+                    </section>
+
+                    <section class="elNSLModalCard elNSLModalCardLinks">
+                        <a href="#">ANN</a>
+                        <a href="#">MAL</a>
+                        <a href="#">Kitsu</a>
+                    </section>
                 </div>
             </div>
         </div>
@@ -1001,7 +1032,7 @@ const htmlContent = `
 
                 $('#elNSLModalVideo')[0].src = `https://naedist.animemusicquiz.com/${videoSrc}`;
                 $('.elNSLModalSongAnimeJP').html(animeName)
-                $('.elNSLModalSongName').html(song.songEntry.name)
+                $('.elNSLModalSongName').html(`🎵 ${song.songEntry.name}`)
                 $('.elNSLModalSongDifficulty').html(song.amqSong.globalPercent)
                 $('.elNSLModalSongDifficultyOwn').html(song.amqSong.recentPercent)
                 $('.elNSLModalSongAnnId').html(song.amqSong.annId)
@@ -1012,34 +1043,38 @@ const htmlContent = `
                 getArtistHover(song.songEntry.composer, $('.elNSLModalSongComposer'));
                 getArtistHover(song.songEntry.arranger, $('.elNSLModalSongArranger'));
             } else if (type == 'anime') {
-                $('.elNSLModalSongAnimeLinks').html('');
-                if (song.amqAnime.annId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
+                $('.elNSLModalCardLinks').html('');
+                if (song.amqAnime.annId) $('.elNSLModalCardLinks').append($('<a>', {
                     html: 'ANN',
+                    target: '_blank',
                     href: `https://www.animenewsnetwork.com/encyclopedia/anime.php?id=${song.amqAnime.annId}`,
                 })).append(' ');
-                if (song.amqAnime.malId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
+                if (song.amqAnime.malId) $('.elNSLModalCardLinks').append($('<a>', {
                     html: 'MAL',
+                    target: '_blank',
                     href: `https://myanimelist.net/anime/${song.amqAnime.malId}`
                 })).append(' ');
-                if (song.amqAnime.anilistId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
+                if (song.amqAnime.anilistId) $('.elNSLModalCardLinks').append($('<a>', {
                     html: 'Anilist',
+                    target: '_blank',
                     href: `https://anilist.co/anime/${song.amqAnime.anilistId}`,
                 })).append(' ');
-                if (song.amqAnime.kitsuId) $('.elNSLModalSongAnimeLinks').append($('<a>', {
+                if (song.amqAnime.kitsuId) $('.elNSLModalCardLinks').append($('<a>', {
                     html: 'Kitsu',
+                    target: '_blank',
                     href: `https://kitsu.app/anime/${song.amqAnime.kitsuId}`,
                 })).append(' ');
 
                 $('.elNSLModalSongGenres').html(``);
                 song.amqAnime.genres.forEach((genre, index) => {
-                    $('.elNSLModalSongGenres').append(`${genre}`);
-                    if (index < song.amqAnime.genres.length - 1) $('.elNSLModalSongGenres').append(', ');
+                    $('.elNSLModalSongGenres').append(`<span class="elNSLModalTag">${genre}</span>`);
                 });
                 $('.elNSLModalSongTags').html(``);
                 song.amqAnime.tags.forEach((tag, index) => {
-                    $('.elNSLModalSongTags').append(`${tag}`);
-                    if (index < song.amqAnime.tags.length - 1) $('.elNSLModalSongTags').append(', ');
+                    $('.elNSLModalSongTags').append(`<span class="elNSLModalTag">${tag}</span>`);
                 });
+                // $('.elNSLModalSongKind').html(song.amqSong.globalPercent)
+                // $('.elNSLModalSongYear').html(song.amqSong.globalPercent)
             }
         }
 
