@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.16
+// @version      0.16.1
 // @description  description
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -19,10 +19,10 @@
 // @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
 
-const version = '0.16';
+const version = '0.16.1';
 
 GM_addStyle(`
-    .modal-body { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .elNSLModalBody { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
     .elNSLModalVideoDiv { position: relative; border-radius: 4px; overflow: hidden; }
     .elNSLModalCard { background: #262626; border-radius: 4px; padding: 4px 6px; }
     .elNSLModalGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
@@ -34,7 +34,7 @@ GM_addStyle(`
     .elNSLModalSongLine { display: flex; align-items: center; gap: 4px; white-space: nowrap; padding-top: 8px; padding-bottom: 8px;}
     .elNSLModalSongLine h4 { font-size: 15px; margin: 0; overflow: hidden; text-overflow: ellipsis; }
     .elNSLModalSongLine p { margin: 0; opacity: 0.7; font-size: 13px; }
-    .elNSLModalSongLine span { opacity: 0.4; }   
+    .elNSLModalSongLine span { opacity: 0.4; }
     .elNSLModalCardLinks { display: flex; gap: 4px; }
     .elNSLModalCardLinks a { color: #7aa2ff; text-decoration: none; font-size: 14px; }
 
@@ -386,9 +386,9 @@ const htmlContent = `
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
                     <h3 class="modal-title"><span class="elNSLModalSongAnimeJP"></span></h3>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body elNSLModalBody">
                 <div class="elNSLModalSongAnimePanel"><span class="elNSLModalSongAnimeEN"></span></div>
-                
+
                     <div class="elNSLModalVideoDiv">
                         <video class="elNSLModalVideo" id="elNSLModalVideo" autoplay controls>Your browser does not support the video tag.</video>
                     </div>
@@ -471,7 +471,7 @@ const htmlContent = `
                     <span class="elSongAnimeName">{animeName}</span>
                     <div class="elNSLSongName"><span class="elNSLSongSongName">{songName}</span> - <span class="elNSLSongSongArtist">{songArtist}</span></div>
                 </div>
-                <div class="songRateSelect">              
+                <div class="songRateSelect">
                     <select name="songRate" id="songRate">
                         <option value="songRateLike">L</option>
                         <option value="songRateUnrated" selected>-</option>
