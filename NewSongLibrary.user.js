@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         New Song Library
 // @version      0.16.1
-// @description  description
+// @description  Song List with Music Player
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=animemusicquiz.com
@@ -69,14 +69,15 @@ GM_addStyle(`
     .elNSLAnimeStatusD { font-weight: 600; color: #dc3545; }
     .elNSLAnimeStatusU { font-weight: 600; color: #6c757d; }
     .elNSLPagination { text-align: center; }
+    .elNSLPagination:first-child { margin-bottom: 8px; }
     .elNSLPagination:last-child { margin-top: 8px; }
     .elNSLPaginationChange { color: white; padding: 8px; background-color: #1b1b1b; border-radius: 4px; border: none; }
     .elNSLPaginationChange:first-child { margin-right: 8px; }
     .elNSLPaginationChange:only-child { margin-right: 0px; }
     .paginationPage { display: inline-block; width: 100px; }
     .alignCenter { text-align: center; }
-    .elNSLSongEntry { margin-top: 8px !important; padding: 8px !important; }
-    .elNSLSongEntry:first-child { margin-top: 0 !important; padding: 8px !important; }
+    .elNSLSongEntry { margin-top: 0px !important; padding: 8px !important; }
+    .elNSLSongEntrySplit { margin-bottom: 8px !important;}
     .elNSLSongEntryPlaying { margin-left: 8px; margin-right: -8px; box-shadow: 0 0px 5px 1px #6d6d6d !important; }
     .elNSLSongShowMore { width: 100%; padding: 16px; text-align: center; }
     .elNSLSongShowMoreButton:hover { cursor: pointer; }
@@ -952,6 +953,8 @@ const htmlContent = `
                 // const artistContainer = template.find('.elNSLSongSongArtist');
                 // new ArtistHover(songArtist, artistContainer, undefined, null, false);
 
+                if (i + 1 < page + 100 && sortedSongsData[i].animeEntry.annId != sortedSongsData[i + 1]?.animeEntry.annId) template.addClass("elNSLSongEntrySplit")
+
                 template.attr('data-song-id', song.songEntry.songId);
                 template.find('.elSongSongType').html(songType)
                 template.find('.elSongAnimeStatus').html(animeStatus)
@@ -1095,13 +1098,22 @@ const htmlContent = `
 
             const songArtistGroupId = 'artistId' in artistInfo ? artistInfo.artistId : artistInfo.groupId;
 
-            const eventSongIndex = songMap.findIndex(item => {
-                const itemArtistId = item.songEntry.songGroupId !== null ? item.songEntry.songGroupId : item.songEntry.songArtistId;
+            console.log(annId, songName, artistInfo)
+            console.log(songMap)
 
-                return item.animeEntry.annId == annId &&
-                    itemArtistId == songArtistGroupId &&
-                    item.songEntry.name == songName;
+            const eventSong = songMap.find(songItem => {
+                return songItem.songEntry.name == songName;
             });
+            console.log(eventSong)
+
+            const eventSongIndex = songMap.findIndex(songItem => {
+                // const itemArtistId = songItem.songEntry.artist.groupId !== null ? songItem.songEntry.artist.groupId : songItem.songEntry.songArtistId;
+
+                return songItem.animeEntry.annId == annId &&
+                    (songArtistGroupId == songItem.songEntry.artist?.groupId || songArtistGroupId == songItem.songEntry?.songArtistId) &&
+                    songItem.songEntry.name == songName;
+            });
+
             const eventSongId = songMap[eventSongIndex].songEntry.songId;
 
             const checkForElement = () => {
