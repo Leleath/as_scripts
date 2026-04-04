@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.16.1
+// @version      0.17
 // @description  Song List with Music Player
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -19,7 +19,7 @@
 // @downloadURL  https://github.com/Leleath/as_scripts/raw/refs/heads/main/NewSongLibrary.user.js
 // ==/UserScript==
 
-const version = '0.16.1';
+const version = '0.17';
 
 GM_addStyle(`
     .elNSLModalBody { overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
