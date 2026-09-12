@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.17
+// @version      0.20
 // @description  Song List with Music Player
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
