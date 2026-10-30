@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.20
+// @version      0.29
 // @description  Song List with Music Player
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -9,6 +9,8 @@
 // @connect      githubusercontent.com
 // @connect      raw.githubusercontent.com
 // @connect      objects.githubusercontent.com
+// @connect      myanimelist.net
+// @connect      shikimori.io
 // @grant        unsafeWindow
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
@@ -23,9 +25,10 @@
   'use strict';
 
   const APP = {
-    version: '0.20',
+    version: '0.29',
     rootId: 'nsl-root',
     storageKey: 'playerStatusList',
+    quizCoverSettingKey: 'nsl-quiz-cover-enabled-v1',
     audioHost: 'https://naedist.animemusicquiz.com/',
     pageSize: 100,
     searchLimit: 3000,
@@ -139,7 +142,24 @@
     .nsl-volume-btn { border:0; background:none; color:var(--muted); cursor:pointer; flex:0 0 30px; }
     .nsl-volume-value { width:38px; text-align:right; color:var(--muted); font-size:11px; font-variant-numeric:tabular-nums; }
     .nsl-modal { position:fixed; inset:0; z-index:10000; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.65); padding:18px; }
+    .nsl-spoilers-active .nsl-spoiler { filter:blur(5px); transition:filter .14s ease; user-select:none; }
+    .nsl-spoilers-active .nsl-spoiler:hover { filter:none; user-select:text; }
+    .nsl-spoilers-active .nsl-spoiler .nsl-artist-hover-target { pointer-events:none; }
+    .nsl-spoilers-active .nsl-spoiler:hover .nsl-artist-hover-target { pointer-events:auto; }
+    .nsl-coverage-panel { width:min(1050px,100%); max-height:90vh; overflow:auto; border:1px solid #333c49; border-radius:18px; background:#11141b; padding:18px; color:#e6edf6; }
+    .nsl-coverage-controls { display:flex; align-items:center; gap:10px; margin:12px 0; }
+    .nsl-coverage-controls select { height:32px; background:#19202a; color:#e6edf6; border:1px solid #46505d; border-radius:8px; }
+    .nsl-coverage-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:14px 0; }
+    .nsl-coverage-kpis strong { display:block; font-size:22px; color:#6ee7b7; }
+    .nsl-coverage-heading { font-size:16px; margin:20px 0 8px; }
+    .nsl-coverage-note { color:#aebacd; font-size:12px; line-height:1.5; }
+    .nsl-coverage-scroll { overflow-x:auto; }
+    .nsl-coverage-table { width:100%;border-collapse:collapse;font-size:12px; }
+    .nsl-coverage-table th, .nsl-coverage-table td { padding:8px 7px;text-align:left;border-bottom:1px solid #2a303b;white-space:nowrap; }
     .nsl-modal-card { width:min(860px,100%); max-height:92vh; overflow:auto; border:1px solid rgba(255,255,255,.1); border-radius:20px; background:#11141b; box-shadow:var(--shadow); }
+     .nsl-modal-nav { display:flex; align-items:center; gap:7px; flex-shrink:0; }
+     .nsl-modal-nav .nsl-page-btn { min-height:32px; padding:0 11px; }
+     .nsl-modal-position { font-size:12px; color:var(--muted); min-width:60px; text-align:center; }
     .nsl-modal-head { position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; background:rgba(17,20,27,.96); border-bottom:1px solid rgba(255,255,255,.08); }
     .nsl-modal-title { margin:0; font-size:18px; }
     .nsl-close { border:0; background:rgba(255,255,255,.08); color:var(--text); width:34px; height:34px; border-radius:12px; cursor:pointer; font-size:20px; }
@@ -154,7 +174,15 @@
     .nsl-toggle-button { font-size:40px; height:45px; width:112px; }
     .nsl-toast { position:fixed; right:22px; bottom:22px; z-index:10020; max-width:min(420px,calc(100vw - 44px)); padding:11px 14px; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:#18202b; color:var(--text); box-shadow:var(--shadow); font-size:13px; }
     .nsl-toast.nsl-error { border-color:rgba(251,113,133,.55); color:#fecdd3; }
-    @media (max-width:900px){ .nsl-shell{padding:10px}.nsl-app{height:calc(100vh - 20px)}.nsl-layout{grid-template-columns:1fr}.nsl-sidebar{max-height:42vh}.nsl-player{grid-template-columns:1fr;gap:8px}.nsl-volume{justify-self:stretch;width:100%}.nsl-song{grid-template-columns:56px minmax(0,1fr) 70px 50px 100px}.nsl-info-grid{grid-template-columns:1fr} }
+    .nsl-quiz-cover { display:none; position:fixed; left:20px; top:50%; z-index:2147483646; width:290px; min-width:220px; min-height:300px; max-width:80vw; max-height:85vh; padding:10px; border:1px solid rgba(255,255,255,.10); border-radius:18px; background:linear-gradient(180deg,rgba(17,20,27,.98),rgba(12,15,21,.98)); box-shadow:var(--shadow); overflow:auto; pointer-events:auto; resize:both; transform:translateY(-50%); }
+    .nsl-quiz-cover.nsl-visible { display:flex; flex-direction:column; gap:10px; }
+    .nsl-quiz-cover img { display:block; width:100%; min-height:0; flex:0 0 auto; aspect-ratio:2/3; object-fit:cover; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:#0b0f15; pointer-events:none; }
+    .nsl-quiz-cover-title-ru { flex:0 0 auto; padding:10px 12px 6px; margin-top:-2px; overflow:hidden; cursor:move; font-size:16px; line-height:1.25; text-align:center; text-overflow:ellipsis; user-select:none; white-space:nowrap; color:#93c5fd; font-weight:900; border-radius:14px 14px 0 0; background:rgba(255,255,255,.03); }
+    .nsl-quiz-cover-meta { flex:0 0 auto; display:grid; gap:8px; padding:0 12px 12px; color:#cbd5e1; font-size:12px; line-height:1.35; border-radius:0 0 14px 14px; background:rgba(255,255,255,.03); }
+    .nsl-quiz-cover-meta-row { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 8px; border-radius:10px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.05); }
+    .nsl-quiz-cover-meta-label { color:#98a2b3; margin-right:6px; }
+    .nsl-quiz-cover-meta-value { color:#edf1f7; }
+    @media (max-width:900px){ .nsl-shell{padding:10px}.nsl-app{height:calc(100vh - 20px)}.nsl-layout{grid-template-columns:1fr}.nsl-sidebar{max-height:42vh}.nsl-player{grid-template-columns:1fr;gap:8px}.nsl-volume{justify-self:stretch;width:100%}.nsl-song{grid-template-columns:56px minmax(0,1fr) 60px 48px 90px}.nsl-info-grid{grid-template-columns:1fr} }
   `;
 
   GM_addStyle(css);
@@ -163,10 +191,17 @@
     constructor() {
       this.songMap = [];
       this.filteredSongs = [];
+      this.shuffleOrder = null;
+      this.spoilersHidden = GM_getValue('nsl-spoilers-hidden-v1', false) === true;
+      this.currentModalKey = null;
       this.songByKey = new Map();
       this.songByAnnSongId = new Map();
       this.pendingSongRequests = new Map();
       this.pendingAnimeRequests = new Map();
+      this.shikimoriCache = new Map();
+      this.shikimoriPending = new Map();
+      this.quizCoverEnabled = GM_getValue(APP.quizCoverSettingKey, true) !== false;
+      this.coverRequestId = 0;
       this.savedSongs = this.readSavedSongs();
       this.page = 0;
       this.state = { visible: false, currentTrack: null, playing: false, repeating: false, seeking: false, volumeSeeking: false, volume: 0.8, lastVolume: 0.8 };
@@ -228,7 +263,7 @@
                     <div class="nsl-toolbar-title">Song Library</div>
                     <div class="nsl-toolbar-meta" data-result-info>Waiting for library cache...</div>
                   </div>
-                  <button class="nsl-page-btn" type="button" data-refresh>Refresh</button>
+                  <div class="nsl-row"><button class="nsl-page-btn" type="button" data-coverage>📊 Coverage</button><button class="nsl-page-btn" type="button" data-spoilers title="Blur anime, song and artist names">🙈 Hide</button><button class="nsl-page-btn" type="button" data-shuffle title="Shuffle songs matching current filters">🔀 Shuffle</button><button class="nsl-page-btn" type="button" data-refresh>Refresh</button></div>
                 </div>
                 <div class="nsl-list" data-list></div>
               </main>
@@ -258,14 +293,31 @@
             </footer>
           </div>
         </div>
+        <div class="nsl-modal nsl-hidden" data-coverage-modal>
+          <div class="nsl-coverage-panel">
+            <div class="nsl-modal-head"><h3 class="nsl-modal-title">📊 AMQ Library Coverage</h3><button class="nsl-close" type="button" data-coverage-close>×</button></div>
+            <div class="nsl-coverage-controls"><label>Scope: <select data-coverage-scope><option value="filtered">Current filters</option><option value="all">Entire library</option></select></label></div>
+            <div data-coverage-content></div>
+          </div>
+        </div>
         <div class="nsl-modal nsl-hidden" data-modal>
           <div class="nsl-modal-card">
             <div class="nsl-modal-head">
               <h3 class="nsl-modal-title" data-modal-title>Song info</h3>
-              <button class="nsl-close" type="button" data-modal-close>×</button>
+              <div class="nsl-modal-nav">
+                <button class="nsl-page-btn" type="button" data-modal-prev title="Previous song">◀</button>
+                <span class="nsl-modal-position" data-modal-position></span>
+                <button class="nsl-page-btn" type="button" data-modal-next title="Next song">▶</button>
+                <button class="nsl-close" type="button" data-modal-close>×</button>
+              </div>
             </div>
             <div class="nsl-modal-body" data-modal-body></div>
           </div>
+        </div>
+        <div class="nsl-quiz-cover" data-quiz-cover>
+          <img data-quiz-cover-image alt="Anime cover">
+          <div class="nsl-quiz-cover-title-ru" data-quiz-cover-title-ru></div>
+          <div class="nsl-quiz-cover-meta" data-quiz-cover-meta></div>
         </div>`;
 
       const gameContainer = document.getElementById('gameContainer') || document.body;
@@ -287,9 +339,17 @@
       this.ui.volumeBar = root.querySelector('[data-volume-bar]');
       this.ui.volumeToggle = root.querySelector('[data-volume-toggle]');
       this.ui.volumeValue = root.querySelector('[data-volume-value]');
+      this.ui.coverageModal = root.querySelector('[data-coverage-modal]');
+      this.ui.coverageContent = root.querySelector('[data-coverage-content]');
       this.ui.modal = root.querySelector('[data-modal]');
       this.ui.modalTitle = root.querySelector('[data-modal-title]');
+      this.ui.modalPosition = root.querySelector('[data-modal-position]');
       this.ui.modalBody = root.querySelector('[data-modal-body]');
+      this.ui.quizCover = root.querySelector('[data-quiz-cover]');
+      this.ui.quizCoverImage = root.querySelector('[data-quiz-cover-image]');
+      this.ui.quizCoverTitleRu = root.querySelector('[data-quiz-cover-title-ru]');
+      this.ui.quizCoverMeta = root.querySelector('[data-quiz-cover-meta]');
+      document.body.append(this.ui.quizCover);
 
       this.injectMenuButton();
       this.fillCustomLists();
@@ -300,10 +360,14 @@
       return `
         <section class="nsl-group">
           <h3 class="nsl-group-title">Search</h3>
-          <div class="nsl-row"><input class="nsl-input" name="search" placeholder="Type..."><label class="nsl-check"><input type="checkbox" name="partial" checked> partial</label></div>
-          <div class="nsl-grid2" style="margin-top:8px">
-            <select class="nsl-select" name="searchIn"><option value="all">All</option><option value="anime">Anime</option><option value="song">Name</option><option value="artist">Artist</option><option value="composer">Composer</option><option value="arranger">Arranger</option></select>
-            <select class="nsl-select" name="sort"><option value="idAsc" selected>annId Asc</option><option value="idDesc">annId Desc</option><option value="nameAsc">Name Asc</option><option value="nameDesc">Name Desc</option></select>
+          <div class="nsl-search-wrap"><input class="nsl-input" name="search" placeholder="Type..." style="width:100%;height:34px"><button type="button" class="nsl-clear-search" data-clear-search title="Clear search">×</button></div>
+          <div class="nsl-row" style="margin-top:8px;justify-content:space-between;gap:12px">
+            <select class="nsl-select" name="searchIn" style="flex:1;min-width:0"><option value="all">All</option><option value="anime">Anime</option><option value="song">Name</option><option value="artist">Artist</option><option value="composer">Composer</option><option value="arranger">Arranger</option></select>
+            <label class="nsl-check" style="flex:0 0 auto"><input type="checkbox" name="partial" checked> partial</label>
+          </div>
+          <div class="nsl-row" style="margin-top:8px;gap:8px">
+            <select class="nsl-select" name="sort" style="flex:1;min-width:0"><option value="annId">Anime ID</option><option value="songId">Song ID</option><option value="year">Year</option><option value="anime">Anime name</option><option value="song">Song name</option><option value="artist">Artist</option><option value="type">Song type</option><option value="category">Song category</option><option value="animeType">Anime type</option><option value="status">Anime status</option><option value="rating">Song rating</option></select>
+            <select class="nsl-select" name="sortDirection" title="Sort direction" style="width:90px;flex:0 0 90px"><option value="asc">ASC</option><option value="desc">DESC</option></select>
           </div>
         </section>
         <section class="nsl-group"><h3 class="nsl-group-title">Anime Status</h3><div class="nsl-grid2">${checks([['ptw', 'Plan to Watch'], ['watching', 'Watching'], ['completed', 'Completed'], ['onhold', 'On Hold'], ['dropped', 'Dropped'], ['statusOther', 'Other']])}</div></section>
@@ -314,6 +378,7 @@
         <section class="nsl-group"><h3 class="nsl-group-title">Saved</h3><div class="nsl-grid2">${checks([['saved', 'Saved'], ['notSaved', 'Not saved']])}</div></section>
         <section class="nsl-group"><h3 class="nsl-group-title">Rating</h3><div class="nsl-grid2">${checks([['like', 'Like'], ['dislike', 'Dislike'], ['unrated', 'Unrated']])}</div></section>
         <section class="nsl-group"><h3 class="nsl-group-title">Lists</h3><div class="nsl-grid2"><select class="nsl-select" name="list" data-list-select><option value="">None</option></select><select class="nsl-select" name="listMode"><option value="only">Only songs</option><option value="onlyA">Only anime</option><option value="dark">Dim</option><option value="remove">Remove</option></select></div></section>
+        <section class="nsl-group"><h3 class="nsl-group-title">Answer overlay</h3><label class="nsl-check"><input type="checkbox" name="quizCoverEnabled" ${this.quizCoverEnabled ? 'checked' : ''}> Show cover and Russian anime title after answer</label></section>
       `;
     }
 
@@ -345,24 +410,49 @@
     }
 
     bindUI() {
-      this.ui.form.addEventListener('submit', (event) => { event.preventDefault(); this.page = 0; this.render(); });
+      this.ui.form.addEventListener('submit', (event) => { event.preventDefault(); this.shuffleOrder = null; clearTimeout(this.renderTimer); this.page = 0; this.render(); });
       ['keydown', 'keypress', 'keyup'].forEach((type) => {
         this.ui.form.addEventListener(type, (event) => {
           if (event.target.closest('input, select, textarea')) event.stopPropagation();
           if (type === 'keydown' && event.key === 'Escape' && event.target?.name === 'search') {
             event.preventDefault();
             event.target.value = '';
+            this.shuffleOrder = null;
+            clearTimeout(this.renderTimer);
             this.page = 0;
             this.render();
           }
         }, true);
       });
-      this.ui.form.addEventListener('change', () => this.debouncedRender(120));
+      this.ui.form.addEventListener('change', (event) => {
+        if (event.target?.name === 'quizCoverEnabled') {
+          this.quizCoverEnabled = event.target.checked;
+          GM_setValue(APP.quizCoverSettingKey, this.quizCoverEnabled);
+          if (!this.quizCoverEnabled) this.hideQuizCover();
+          return;
+        }
+        this.shuffleOrder = null;
+        this.debouncedRender(120);
+      });
       this.ui.form.addEventListener('input', (event) => {
         event.stopPropagation();
+        if (event.target?.name === 'quizCoverEnabled') return;
+        this.shuffleOrder = null;
         this.debouncedRender(event.target?.name === 'search' ? 700 : 180);
       });
+      this.ui.root.querySelector('[data-clear-search]').addEventListener('click', () => {
+        this.ui.form.elements.search.value = '';
+        this.page = 0;
+        this.render();
+      });
       this.ui.root.querySelector('[data-refresh]').addEventListener('click', () => this.refreshLibrary());
+      this.ui.root.querySelector('[data-coverage]').addEventListener('click', () => this.openCoverage());
+      this.ui.root.querySelector('[data-coverage-close]').addEventListener('click', () => this.ui.coverageModal.classList.add('nsl-hidden'));
+      this.ui.coverageModal.addEventListener('click', event => { if (event.target === this.ui.coverageModal) this.ui.coverageModal.classList.add('nsl-hidden'); });
+      this.ui.root.querySelector('[data-coverage-scope]').addEventListener('change', () => this.renderCoverage());
+      this.ui.root.querySelector('[data-spoilers]').addEventListener('click', () => this.toggleSpoilers());
+      this.updateSpoilerUI();
+      this.ui.root.querySelector('[data-shuffle]').addEventListener('click', () => this.shuffleSongs());
       this.ui.root.querySelector('[data-prev]').addEventListener('click', () => this.prevTrack());
       this.ui.root.querySelector('[data-next]').addEventListener('click', () => this.nextTrack());
       this.ui.playButton.addEventListener('click', () => this.togglePlay());
@@ -378,12 +468,16 @@
       document.addEventListener('mousemove', (event) => {
         if (this.state.seeking) this.setProgress(event);
         if (this.state.volumeSeeking) this.setVolume(event);
+        if (this.coverDrag) this.moveQuizCover(event);
       });
-      document.addEventListener('mouseup', () => { this.state.seeking = false; this.state.volumeSeeking = false; });
+      document.addEventListener('mouseup', () => { this.state.seeking = false; this.state.volumeSeeking = false; this.coverDrag = null; });
       this.ui.list.addEventListener('click', (event) => this.onListClick(event));
       this.ui.list.addEventListener('change', (event) => this.onListChange(event));
+      this.ui.quizCoverTitleRu.addEventListener('mousedown', (event) => this.startCoverDrag(event));
       this.ui.modal.addEventListener('click', (event) => { if (event.target === this.ui.modal) this.closeModal(); });
       this.ui.root.querySelector('[data-modal-close]').addEventListener('click', () => this.closeModal());
+      this.ui.root.querySelector('[data-modal-prev]').addEventListener('click', () => this.navigateModal(-1));
+      this.ui.root.querySelector('[data-modal-next]').addEventListener('click', () => this.navigateModal(1));
       this.audio.addEventListener('timeupdate', () => this.updateProgress());
       this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
       this.audio.addEventListener('play', () => { this.state.playing = true; this.updatePlayState(); });
@@ -527,6 +621,10 @@
       if (!event?.command) return;
       switch (event.command) {
         case 'answer results': this.handleAnswerResults(event.data); break;
+        case 'play next song':
+        case 'quiz next video info':
+        case 'quiz over':
+        case 'quiz end result': this.hideQuizCover(); break;
         case 'get song extended info': this.receiveSongInfo(event.data); break;
         case 'get anime extended info': this.receiveAnimeInfo(event.data); break;
         case 'get anime status list': this.applyAnimeStatuses(event.data?.animeListMap || {}); break;
@@ -542,7 +640,7 @@
       const action = this.pendingSongRequests.get(Number(data.annSongId));
       this.pendingSongRequests.delete(Number(data.annSongId));
       if (action === 'modal') this.renderModal(song);
-      else this.loadTrack(song);
+      else if (action === 'play') this.loadTrack(song);
     }
 
     receiveAnimeInfo(data) {
@@ -687,22 +785,119 @@
       return this.normalizedNames(names).some((name) => partial ? name.includes(query) : name === query);
     }
 
+    shuffleSongs() {
+      // Fisher–Yates: shuffle only the songs matching the current filters.
+      clearTimeout(this.renderTimer);
+      const songs = this.filterSongs();
+      const keys = songs.map((song) => song.key);
+      for (let i = keys.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [keys[i], keys[j]] = [keys[j], keys[i]];
+      }
+      this.shuffleOrder = new Map(keys.map((key, index) => [key, index]));
+      this.page = 0;
+      this.render();
+    }
+
     sortSongs(songs) {
-      const sort = this.filterValues().sort || 'idAsc';
-      const animeName = (song) => this.displayAnimeName(song).main || '';
-      return [...songs].sort((a, b) => {
-        const bySong = a.song.type - b.song.type || a.song.number - b.song.number || String(a.songEntry.name).localeCompare(String(b.songEntry.name));
-        if (sort === 'idAsc') return a.animeEntry.annId - b.animeEntry.annId || bySong;
-        if (sort === 'idDesc') return b.animeEntry.annId - a.animeEntry.annId || bySong;
-        if (sort === 'nameDesc') return -animeName(a).localeCompare(animeName(b)) || bySong;
-        return animeName(a).localeCompare(animeName(b)) || bySong;
+      if (this.shuffleOrder) {
+        let next = this.shuffleOrder.size;
+        for (const song of songs) if (!this.shuffleOrder.has(song.key)) this.shuffleOrder.set(song.key, next++);
+        return [...songs].sort((a,b) => this.shuffleOrder.get(a.key)-this.shuffleOrder.get(b.key));
+      }
+      const v = this.filterValues();
+      const field = v.sort || 'annId';
+      const direction = v.sortDirection === 'desc' ? -1 : 1;
+      const value = (s) => {
+        switch(field) {
+          case 'annId': return Number(s.animeEntry.annId)||0;
+          case 'songId': return Number(s.song.annSongId)||0;
+          case 'year': return Number(s.animeEntry.year)||0;
+          case 'anime': return this.displayAnimeName(s).main;
+          case 'song': return s.songEntry.name || '';
+          case 'artist': return s.songEntry.artist?.name || '';
+          case 'type': return Number(s.song.type)||0;
+          case 'category': return Number(s.songEntry.category)||0;
+          case 'animeType': return s.animeEntry.category?.name || '';
+          case 'status': return Number(s.animeEntry.status)||0;
+          case 'rating': return Number(s.songEntry.status)||0;
+          default: return Number(s.animeEntry.annId)||0;
+        }
+      };
+      return [...songs].sort((a,b) => {
+        const va=value(a), vb=value(b);
+        const compared = typeof va === 'number' && typeof vb === 'number' ? va-vb : String(va).localeCompare(String(vb),undefined,{numeric:true,sensitivity:'base'});
+        return direction*compared || (Number(a.animeEntry.annId)-Number(b.animeEntry.annId)) || (Number(a.song.annSongId)-Number(b.song.annSongId));
       });
+    }
+
+    toggleSpoilers() {
+      this.spoilersHidden = !this.spoilersHidden;
+      GM_setValue('nsl-spoilers-hidden-v1', this.spoilersHidden);
+      this.updateSpoilerUI();
+    }
+
+    updateSpoilerUI() {
+      this.ui.root?.classList.toggle('nsl-spoilers-active', this.spoilersHidden);
+      const btn = this.ui.root?.querySelector('[data-spoilers]');
+      if (btn) { btn.textContent = this.spoilersHidden ? '👁 Reveal' : '🙈 Hide'; btn.setAttribute('aria-pressed', String(this.spoilersHidden)); }
+    }
+
+    openCoverage() {
+      this.ui.coverageModal.classList.remove('nsl-hidden');
+      this.renderCoverage();
+    }
+
+    renderCoverage() {
+      const useAll = this.ui.root.querySelector('[data-coverage-scope]').value === 'all';
+      const songs = useAll ? this.songMap : this.filterSongs();
+      const animeIds = new Set(songs.map(s => String(s.animeEntry.annId)));
+      const typeCounts = { op: 0, ed: 0, insert: 0, other: 0 };
+      const byAnime = new Map();
+      const byYear = new Map();
+      const byStatus = new Map();
+      const byType = new Map();
+      const add = (map, key, song) => {
+        const item = map.get(key) || { anime: new Set(), songs: 0, op: 0, ed: 0, insert: 0 };
+        item.anime.add(String(song.animeEntry.annId));
+        item.songs++;
+        if (Number(song.song.type) === 1) item.op++;
+        else if (Number(song.song.type) === 2) item.ed++;
+        else if (Number(song.song.type) === 3) item.insert++;
+        map.set(key, item);
+      };
+      for (const song of songs) {
+        const type = Number(song.song.type);
+        if (type === 1) typeCounts.op++;
+        else if (type === 2) typeCounts.ed++;
+        else if (type === 3) typeCounts.insert++;
+        else typeCounts.other++;
+        add(byAnime, String(song.animeEntry.annId), song);
+        add(byYear, String(song.animeEntry.year || 'Unknown'), song);
+        const statusName = ({0:'Other',1:'Watching',2:'Completed',3:'On Hold',4:'Dropped',5:'Plan to Watch'})[Number(song.animeEntry.status)] || String(song.animeEntry.status);
+        add(byStatus, statusName, song);
+        add(byType, String(song.animeEntry.category?.name || 'Other'), song);
+      }
+      const kpi = (label, value) => `<div class="nsl-card"><div class="nsl-label">${label}</div><strong>${value}</strong></div>`;
+      const table = (label, map, cap = 50) => {
+        const rows = [...map].sort((a,b) => b[1].songs - a[1].songs).slice(0, cap)
+          .map(([key,v]) => `<tr><td>${this.escape(key)}</td><td>${v.anime.size}</td><td>${v.songs}</td><td>${v.op}</td><td>${v.ed}</td><td>${v.insert}</td></tr>`).join('');
+        return `<h4 class="nsl-coverage-heading">${label}</h4><div class="nsl-coverage-scroll"><table class="nsl-coverage-table"><thead><tr><th>Category</th><th>Anime</th><th>Songs</th><th>OP</th><th>ED</th><th>Insert</th></tr></thead><tbody>${rows || '<tr><td colspan="6">No data</td></tr>'}</tbody></table></div>`;
+      };
+      const animeNames = new Map();
+      for (const song of songs) if (!animeNames.has(String(song.animeEntry.annId))) animeNames.set(String(song.animeEntry.annId), this.displayAnimeName(song).main);
+      const animeMap = new Map([...byAnime].map(([key,v]) => [`${animeNames.get(key) || key} (#${key})`,v]));
+      this.ui.coverageContent.innerHTML =
+        `<div class="nsl-coverage-kpis">${kpi('Anime',animeIds.size)}${kpi('Songs',songs.length)}${kpi('Opening',typeCounts.op)}${kpi('Ending',typeCounts.ed)}${kpi('Insert',typeCounts.insert)}${kpi('Other types',typeCounts.other)}</div>` +
+        `<p class="nsl-coverage-note">Coverage is calculated from the AMQ library cache${useAll ? '' : ' using current filters'}. No Firebase or personal Tampermonkey lists required.</p>` +
+        table('By MAL status', byStatus) + table('By anime type', byType) + table('By year', byYear) +
+        table('Anime with the most songs', animeMap, 100);
     }
 
     render() {
       this.filteredSongs = this.sortSongs(this.filterSongs());
       const uniqueAnime = new Set(this.filteredSongs.map((song) => song.animeEntry.annId));
-      this.ui.resultInfo.textContent = `${this.filteredSongs.length} songs / ${uniqueAnime.size} animes${this.searchLimited ? ' · showing first ' + APP.searchLimit : ''}`;
+      this.ui.resultInfo.textContent = `${this.filteredSongs.length} songs / ${uniqueAnime.size} animes${this.shuffleOrder ? ' · 🔀 shuffled' : ''}${this.searchLimited ? ' · showing first ' + APP.searchLimit : ''}`;
       this.renderPage();
       this.updatePlayState();
     }
@@ -765,7 +960,7 @@
       section.dataset.annId = group.anime.annId;
       section.innerHTML = `
         <div class="nsl-anime-head">
-          <button class="nsl-anime-main" type="button" data-anime-link title="Open anime page">${this.escape(name.main)}${name.secondary ? `<span class="nsl-anime-alt">${this.escape(name.secondary)}</span>` : ''}</button>
+          <button class="nsl-anime-main" type="button" data-anime-link title="Open anime page"><span class="nsl-spoiler">${this.escape(name.main)}${name.secondary ? `<span class="nsl-anime-alt">${this.escape(name.secondary)}</span>` : ''}</span></button>
           <div class="nsl-anime-tags"><select class="nsl-anime-status nsl-status-${group.anime.status}" data-anime-status data-old-status="${group.anime.status}" title="Change MyAnimeList status">${this.animeStatusOptions(group.anime.status)}</select><span class="nsl-chip">${this.escape(group.anime.category?.name || 'Unknown')}</span><span class="nsl-chip">${group.anime.year || '-'}</span><span class="nsl-chip">${group.songs.length} songs</span></div>
         </div>`;
       group.songs.forEach((song) => {
@@ -784,7 +979,7 @@
       const saved = this.savedSongs.has(Number(song.songEntry.songId));
       row.innerHTML = `
         <div><span class="nsl-song-type nsl-type-${song.song.type}">${this.escape(this.songType(song, true))}</span></div>
-        <div class="nsl-song-name" title="${this.escape(song.songEntry.name)}">${this.escape(song.songEntry.name)} <span>— </span><span class="nsl-artist nsl-song-artist"></span></div>
+        <div class="nsl-song-name"><span class="nsl-spoiler">${this.escape(song.songEntry.name)}</span> <span>— </span><span class="nsl-spoiler"><span class="nsl-artist nsl-song-artist"></span></span></div>
         <label class="nsl-save"><input type="checkbox" data-save ${saved ? 'checked' : ''}> Saved</label>
         <select class="nsl-rate" data-rate title="Like status">
           <option value="1" ${song.songEntry.status === 1 ? 'selected' : ''}>L</option>
@@ -966,9 +1161,9 @@
       song.song.audio = fileName;
       this.state.currentTrack = song;
       this.audio.src = `${APP.audioHost}${fileName}`;
-      this.ui.trackTitle.innerHTML = `${this.escape(song.songEntry.name)} — <span class="nsl-artist nsl-player-artist"></span>`;
+      this.ui.trackTitle.innerHTML = `<span class="nsl-spoiler">${this.escape(song.songEntry.name)}</span> — <span class="nsl-spoiler"><span class="nsl-artist nsl-player-artist"></span></span>`;
       this.getArtistHover(song.songEntry.artist, $(this.ui.trackTitle).find('.nsl-player-artist'));
-      this.ui.trackSub.textContent = `${this.displayAnimeName(song).main} (${this.songType(song)})`;
+      this.ui.trackSub.innerHTML = `<span class="nsl-spoiler">${this.escape(this.displayAnimeName(song).main)}</span> (${this.escape(this.songType(song))})`;
       this.audio.play().catch((error) => {
         console.error('[NSL] Playback error:', error);
         this.state.playing = false;
@@ -1074,8 +1269,24 @@
       return Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
     }
 
+    navigateModal(direction) {
+      if (!this.filteredSongs.length) return;
+      const index = this.filteredSongs.findIndex((song) => song.key === this.currentModalKey);
+      const next = (index + direction + this.filteredSongs.length) % this.filteredSongs.length;
+      this.openModal(this.filteredSongs[next]);
+    }
+
+    updateModalPosition() {
+      const index = this.filteredSongs.findIndex((song) => song.key === this.currentModalKey);
+      this.ui.modalPosition.textContent = index < 0 ? '—' : `${index + 1} / ${this.filteredSongs.length}`;
+    }
+
     openModal(song) {
+      this.currentModalKey = song.key;
+      const oldVideo = this.ui.modalBody.querySelector('video');
+      if (oldVideo) { oldVideo.pause(); oldVideo.removeAttribute('src'); oldVideo.load(); }
       this.ui.modal.classList.remove('nsl-hidden');
+      this.updateModalPosition();
       this.ui.modalTitle.textContent = this.displayAnimeName(song).main;
       this.ui.modalBody.innerHTML = '<div class="nsl-empty">Loading extended info...</div>';
       let waiting = false;
@@ -1092,13 +1303,15 @@
     }
 
     closeModal() {
+      this.currentModalKey = null;
       const video = this.ui.modalBody.querySelector('video');
       if (video) { video.pause(); video.removeAttribute('src'); video.load(); }
       this.ui.modal.classList.add('nsl-hidden');
     }
 
     renderModal(song) {
-      if (this.ui.modal.classList.contains('nsl-hidden')) return;
+      if (this.ui.modal.classList.contains('nsl-hidden') || song.key !== this.currentModalKey) return;
+      this.updateModalPosition();
       const videoSrc = song.amqSong?.fileNameMap?.['720'] || song.amqSong?.fileNameMap?.['480'] || '';
       const anime = song.amqAnime || {};
       this.ui.modalTitle.textContent = this.displayAnimeName(song).full;
@@ -1178,6 +1391,7 @@
     handleAnswerResults(data) {
       const info = data?.songInfo;
       if (!info) return;
+      if (this.quizCoverEnabled) this.showQuizCover(info);
       const artistId = info.artistInfo && ('artistId' in info.artistInfo ? info.artistInfo.artistId : info.artistInfo.groupId);
       const found = this.songMap.find((song) => Number(song.animeEntry.annId) === Number(info.annId) && song.songEntry.name === info.songName && (artistId == song.songEntry.artist?.groupId || artistId == song.songEntry.songArtistId));
       if (!found) return;
@@ -1192,6 +1406,137 @@
         clearInterval(timer);
       }, 100);
       setTimeout(() => clearInterval(timer), 5000);
+    }
+
+    startCoverDrag(event) {
+      if (event.button !== 0 || !this.ui.quizCover) return;
+      const rect = this.ui.quizCover.getBoundingClientRect();
+      this.ui.quizCover.style.left = `${rect.left}px`;
+      this.ui.quizCover.style.top = `${rect.top}px`;
+      this.ui.quizCover.style.transform = 'none';
+      this.coverDrag = { offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top };
+      event.preventDefault();
+    }
+
+    moveQuizCover(event) {
+      const cover = this.ui.quizCover;
+      if (!cover || !this.coverDrag) return;
+      const maxLeft = Math.max(0, window.innerWidth - cover.offsetWidth);
+      const maxTop = Math.max(0, window.innerHeight - cover.offsetHeight);
+      const left = Math.max(0, Math.min(maxLeft, event.clientX - this.coverDrag.offsetX));
+      const top = Math.max(0, Math.min(maxTop, event.clientY - this.coverDrag.offsetY));
+      cover.style.left = `${left}px`;
+      cover.style.top = `${top}px`;
+    }
+
+    quizCoverKindRu(kind) {
+      const map = {
+        tv: 'ТВ',
+        movie: 'Фильм',
+        ova: 'OVA',
+        ona: 'ONA',
+        special: 'Спецвыпуск',
+        music: 'Клип',
+        tv_special: 'ТВ-спешл',
+        cm: 'CM',
+        pv: 'PV',
+        promo: 'Промо'
+      };
+      const key = String(kind || '').trim().toLowerCase();
+      return map[key] || String(kind || '');
+    }
+
+    async showQuizCover(info) {
+      if (!this.quizCoverEnabled) return;
+      // AMQ provides the MAL identifier; it is used only as an identifier for Shikimori.
+      const animeId = Number(info.siteIds?.malId || 0);
+      const requestId = ++this.coverRequestId;
+      const cover = this.ui.quizCover;
+      const image = this.ui.quizCoverImage;
+      if (!cover || !image) return;
+
+      cover.classList.add('nsl-visible');
+      image.onload = null;
+      image.onerror = null;
+      image.removeAttribute('src');
+      image.style.display = 'none';
+      this.ui.quizCoverTitleRu.textContent = animeId ? 'Загрузка из Shikimori…' : 'ID аниме недоступен';
+      this.ui.quizCoverMeta.textContent = animeId ? 'Загрузка информации…' : 'Не удалось определить аниме';
+      if (!animeId) return;
+
+      try {
+        const anime = await this.getShikimoriAnime(animeId);
+        if (requestId !== this.coverRequestId || !this.quizCoverEnabled) return;
+        this.ui.quizCoverTitleRu.textContent = anime.russian || anime.licenseNameRu || anime.name || 'Название не найдено';
+
+        const rows = [];
+        const add = (label, value) => {
+          const str = String(value || '').trim();
+          if (!str) return;
+          rows.push(`<div class="nsl-quiz-cover-meta-row" title="${this.escape(str)}"><span class="nsl-quiz-cover-meta-label">${this.escape(label)}:</span><span class="nsl-quiz-cover-meta-value">${this.escape(str)}</span></div>`);
+        };
+        add('Студия', anime.studios?.map(item => item.name).filter(Boolean).join(', '));
+        add('Источник', anime.origin || anime.source);
+        add('Тип', this.quizCoverKindRu(anime.kind));
+        this.ui.quizCoverMeta.innerHTML = rows.length ? rows.join('') : 'Дополнительная информация не найдена';
+
+        const poster = anime.poster || {};
+        const url = poster.originalUrl || poster.mainUrl || poster.x96Url || '';
+        if (url) {
+          image.onload = () => { if (requestId === this.coverRequestId && this.quizCoverEnabled) image.style.display = 'block'; };
+          image.onerror = () => { if (requestId === this.coverRequestId) image.style.display = 'none'; };
+          const resolved = new URL(url, 'https://shikimori.io');
+          if (resolved.hostname === 'shikimori.one') resolved.hostname = 'shikimori.io';
+          if (resolved.hostname === 'shikimori.io') image.src = resolved.href;
+        }
+      } catch (error) {
+        if (requestId !== this.coverRequestId || !this.quizCoverEnabled) return;
+        console.warn('[NSL] Shikimori anime loading failed:', error);
+        this.ui.quizCoverTitleRu.textContent = 'Не удалось загрузить Shikimori';
+        this.ui.quizCoverMeta.textContent = 'Проверь доступ к shikimori.io';
+      }
+    }
+
+    async getShikimoriAnime(animeId) {
+      if (this.shikimoriCache.has(animeId)) return this.shikimoriCache.get(animeId);
+      if (this.shikimoriPending.has(animeId)) return this.shikimoriPending.get(animeId);
+      const pending = (async () => {
+        // One request to Shikimori; no AniList, Jikan or MyAnimeList requests for the cover window.
+        const query = `query ($id: String!) {
+          animes(ids: $id, limit: 1) {
+            id malId name russian licenseNameRu kind origin
+            airedOn { year }
+            poster { originalUrl mainUrl }
+            studios { name }
+            genres { name russian }
+          }
+        }`;
+        const response = await this.gmRequest({
+          method: 'POST',
+          url: 'https://shikimori.io/api/graphql',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          data: JSON.stringify({ query, variables: { id: String(animeId) } }),
+        });
+        if (response.status < 200 || response.status >= 300) throw new Error(`Shikimori HTTP ${response.status}`);
+        const payload = JSON.parse(response.responseText || '{}');
+        if (payload.errors?.length) throw new Error(payload.errors.map(e => e.message).join('; '));
+        const items = payload.data?.animes || [];
+        const anime = items.find(a => Number(a.malId) === animeId) || null;
+        if (!anime) throw new Error(`No Shikimori anime found for MAL ID ${animeId}`);
+        this.shikimoriCache.set(animeId, anime);
+        return anime;
+      })();
+      this.shikimoriPending.set(animeId, pending);
+      try { return await pending; }
+      finally { this.shikimoriPending.delete(animeId); }
+    }
+
+    hideQuizCover() {
+      this.coverRequestId += 1;
+      this.ui.quizCover?.classList.remove('nsl-visible');
+      this.ui.quizCoverImage?.removeAttribute('src');
+      if (this.ui.quizCoverImage) this.ui.quizCoverImage.style.display = 'none';
+      if (this.ui.quizCoverMeta) this.ui.quizCoverMeta.textContent = '';
     }
 
     displayAnimeName(song) {
