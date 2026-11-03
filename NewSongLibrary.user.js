@@ -25,7 +25,7 @@
   'use strict';
 
   const APP = {
-    version: '0.29',
+    version: '0.30',
     rootId: 'nsl-root',
     storageKey: 'playerStatusList',
     quizCoverSettingKey: 'nsl-quiz-cover-enabled-v1',
@@ -174,13 +174,14 @@
     .nsl-toggle-button { font-size:40px; height:45px; width:112px; }
     .nsl-toast { position:fixed; right:22px; bottom:22px; z-index:10020; max-width:min(420px,calc(100vw - 44px)); padding:11px 14px; border:1px solid rgba(255,255,255,.12); border-radius:12px; background:#18202b; color:var(--text); box-shadow:var(--shadow); font-size:13px; }
     .nsl-toast.nsl-error { border-color:rgba(251,113,133,.55); color:#fecdd3; }
-    .nsl-quiz-cover { display:none; position:fixed; left:20px; top:50%; z-index:2147483646; width:290px; min-width:220px; min-height:300px; max-width:80vw; max-height:85vh; padding:10px; border:1px solid rgba(255,255,255,.10); border-radius:18px; background:linear-gradient(180deg,rgba(17,20,27,.98),rgba(12,15,21,.98)); box-shadow:var(--shadow); overflow:auto; pointer-events:auto; resize:both; transform:translateY(-50%); }
-    .nsl-quiz-cover.nsl-visible { display:flex; flex-direction:column; gap:10px; }
-    .nsl-quiz-cover img { display:block; width:100%; min-height:0; flex:0 0 auto; aspect-ratio:2/3; object-fit:cover; border-radius:14px; border:1px solid rgba(255,255,255,.08); background:#0b0f15; pointer-events:none; }
-    .nsl-quiz-cover-title-ru { flex:0 0 auto; padding:10px 12px 6px; margin-top:-2px; overflow:hidden; cursor:move; font-size:16px; line-height:1.25; text-align:center; text-overflow:ellipsis; user-select:none; white-space:nowrap; color:#93c5fd; font-weight:900; border-radius:14px 14px 0 0; background:rgba(255,255,255,.03); }
-    .nsl-quiz-cover-meta { flex:0 0 auto; display:grid; gap:8px; padding:0 12px 12px; color:#cbd5e1; font-size:12px; line-height:1.35; border-radius:0 0 14px 14px; background:rgba(255,255,255,.03); }
-    .nsl-quiz-cover-meta-row { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:6px 8px; border-radius:10px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.05); }
-    .nsl-quiz-cover-meta-label { color:#98a2b3; margin-right:6px; }
+    /* Compact answer overlay: title wraps freely without truncation. */
+    .nsl-quiz-cover { display:none; position:fixed; left:20px; top:50%; z-index:2147483646; width:238px; min-width:185px; max-width:80vw; max-height:85vh; padding:7px; border:1px solid rgba(255,255,255,.10); border-radius:13px; background:linear-gradient(180deg,rgba(17,20,27,.98),rgba(12,15,21,.98)); box-shadow:var(--shadow); overflow:auto; pointer-events:auto; resize:both; transform:translateY(-50%); }
+    .nsl-quiz-cover.nsl-visible { display:flex; flex-direction:column; gap:5px; }
+    .nsl-quiz-cover img { display:block; width:100%; min-height:0; flex:0 0 auto; aspect-ratio:2/3; object-fit:cover; border-radius:9px; border:1px solid rgba(255,255,255,.08); background:#0b0f15; pointer-events:none; }
+    .nsl-quiz-cover-title-ru { flex:0 0 auto; min-width:0; padding:6px 7px 4px; margin:0; cursor:move; font-size:12px; line-height:1.3; text-align:center; user-select:none; white-space:normal; overflow-wrap:anywhere; word-break:normal; text-overflow:clip; color:#93c5fd; font-weight:800; border-radius:9px 9px 0 0; background:rgba(255,255,255,.03); }
+    .nsl-quiz-cover-meta { flex:0 0 auto; min-width:0; display:grid; gap:3px; padding:0 6px 6px; color:#cbd5e1; font-size:10px; line-height:1.3; border-radius:0 0 9px 9px; background:rgba(255,255,255,.03); }
+    .nsl-quiz-cover-meta-row { min-width:0; padding:4px 5px; border-radius:6px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.05); white-space:normal; overflow-wrap:anywhere; word-break:normal; }
+    .nsl-quiz-cover-meta-label { color:#98a2b3; margin-right:4px; }
     .nsl-quiz-cover-meta-value { color:#edf1f7; }
     @media (max-width:900px){ .nsl-shell{padding:10px}.nsl-app{height:calc(100vh - 20px)}.nsl-layout{grid-template-columns:1fr}.nsl-sidebar{max-height:42vh}.nsl-player{grid-template-columns:1fr;gap:8px}.nsl-volume{justify-self:stretch;width:100%}.nsl-song{grid-template-columns:56px minmax(0,1fr) 60px 48px 90px}.nsl-info-grid{grid-template-columns:1fr} }
   `;
@@ -1475,9 +1476,14 @@
           if (!str) return;
           rows.push(`<div class="nsl-quiz-cover-meta-row" title="${this.escape(str)}"><span class="nsl-quiz-cover-meta-label">${this.escape(label)}:</span><span class="nsl-quiz-cover-meta-value">${this.escape(str)}</span></div>`);
         };
+        const aired = anime.airedOn;
+        const releaseDate = aired?.year
+          ? [String(aired.day || '').padStart(2, '0'), String(aired.month || '').padStart(2, '0'), String(aired.year)]
+              .filter((part, index) => index === 2 || Number(part) > 0).join('.')
+          : '';
+        add('Дата выхода', releaseDate);
         add('Студия', anime.studios?.map(item => item.name).filter(Boolean).join(', '));
-        add('Источник', anime.origin || anime.source);
-        add('Тип', this.quizCoverKindRu(anime.kind));
+        add('Первоисточник', anime.origin || anime.source);
         this.ui.quizCoverMeta.innerHTML = rows.length ? rows.join('') : 'Дополнительная информация не найдена';
 
         const poster = anime.poster || {};
@@ -1505,7 +1511,7 @@
         const query = `query ($id: String!) {
           animes(ids: $id, limit: 1) {
             id malId name russian licenseNameRu kind origin
-            airedOn { year }
+            airedOn { year month day }
             poster { originalUrl mainUrl }
             studios { name }
             genres { name russian }
