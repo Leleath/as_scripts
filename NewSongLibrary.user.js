@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.4
+// @version      0.40
 // @description  Song List with Music Player
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -25,7 +25,7 @@
   'use strict';
 
   const APP = {
-    version: '0.4',
+    version: '0.40',
     rootId: 'nsl-root',
     storageKey: 'playerStatusList',
     quizCoverSettingKey: 'nsl-quiz-cover-enabled-v1',
