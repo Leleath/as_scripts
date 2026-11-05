@@ -25,7 +25,7 @@
   'use strict';
 
   const APP = {
-    version: '0.38',
+    version: '0.39',
     rootId: 'nsl-root',
     storageKey: 'playerStatusList',
     quizCoverSettingKey: 'nsl-quiz-cover-enabled-v1',
@@ -280,6 +280,111 @@
       .nsl-library-top { flex-wrap:wrap; }
     }
 
+
+    /* v0.39 – consistent density across every NSL view; keep readable controls. */
+    .nsl-shell { padding:7px 9px 9px; }
+    .nsl-app { height:calc(100vh - 34px); gap:6px; }
+    .nsl-shell.nsl-windowed { padding:5px; border-radius:12px; }
+    .nsl-shell.nsl-windowed .nsl-app { gap:5px; }
+    .nsl-panel { border-radius:11px; }
+    .nsl-layout, .nsl-shell.nsl-windowed .nsl-layout { grid-template-columns:minmax(160px,var(--nsl-sidebar-width,310px)) 8px minmax(0,1fr); }
+    .nsl-divider-drag { min-width:8px; }
+    .nsl-divider-drag::before { left:3px; top:8px; bottom:8px; }
+    .nsl-library-top { gap:6px; padding:4px 8px; }
+    .nsl-view-tabs { gap:4px; }
+    .nsl-view-tab { font-size:11px; padding:4px 8px; border-radius:7px; line-height:1.2; min-height:26px; }
+    .nsl-window-tools { gap:4px; }
+    .nsl-window-handle { font-size:11px; padding:3px 6px; }
+    .nsl-head { padding:7px 9px; }
+    .nsl-title { font-size:15px; line-height:1.2; }
+    .nsl-sub { font-size:10px; margin-top:1px; }
+    .nsl-filters { padding:6px 7px; }
+    .nsl-group { padding:6px 7px; margin-bottom:6px; border-radius:9px; }
+    .nsl-group-title { font-size:11px; margin-bottom:4px; letter-spacing:.035em; }
+    .nsl-grid2 { gap:3px 6px; }
+    .nsl-row { gap:5px; }
+    .nsl-filters .nsl-row[style*="margin-top:8px"] { margin-top:5px !important; }
+    .nsl-input, .nsl-select { height:27px; border-radius:7px; padding:0 7px; font-size:11px; }
+    .nsl-search-wrap .nsl-input { height:28px !important; }
+    .nsl-clear-search { height:20px; width:20px; border-radius:6px; }
+    .nsl-check { font-size:11px; gap:5px; min-height:20px; line-height:1.15; }
+    .nsl-check input[type="checkbox"] { width:14px; height:14px; flex-basis:14px; border-radius:4px; }
+    .nsl-submit, .nsl-page-btn { min-height:28px; padding:0 9px; border-radius:9px; font-size:12px; }
+    .nsl-toolbar, .nsl-shell.nsl-windowed .nsl-toolbar { padding:5px 9px; gap:5px; }
+    .nsl-toolbar-title { font-size:14px; line-height:1.25; }
+    .nsl-toolbar-meta { font-size:10px; margin-top:1px; }
+    .nsl-list, .nsl-shell.nsl-windowed .nsl-list { padding:4px 6px; }
+    .nsl-virtual-entry { padding:2px 7px; gap:6px; }
+    .nsl-virtual-entry.nsl-group-heading { padding:0 7px; }
+    .nsl-group-heading .nsl-anime-main { font-size:12px; }
+    .nsl-virtual-entry .nsl-anime-status { height:24px; max-width:112px; padding:0 6px; font-size:10px; }
+    .nsl-virtual-entry .nsl-chip { padding:2px 6px; font-size:10px; }
+    .nsl-virtual-entry .nsl-song { grid-template-columns:45px minmax(0,1fr) 61px 47px 103px; gap:4px; padding:0 2px; }
+    .nsl-shell.nsl-windowed .nsl-virtual-entry .nsl-song { grid-template-columns:42px minmax(0,1fr) 59px 42px 97px; gap:3px; padding:0 1px; }
+    .nsl-virtual-entry .nsl-song-name { font-size:12px; }
+    .nsl-virtual-entry .nsl-song-type { min-width:40px; padding:2px 5px; font-size:10px; }
+    .nsl-virtual-entry .nsl-song .nsl-icon-btn { width:25px; height:25px; border-radius:7px; }
+    .nsl-virtual-entry .nsl-rate { height:25px; font-size:11px; }
+    .nsl-virtual-entry .nsl-save { font-size:10px; gap:3px; }
+    .nsl-virtual-entry .nsl-artist-jump, .nsl-virtual-entry .nsl-anime-short { font-size:12px; }
+    .nsl-virtual-inline-anime { font-size:10px; margin-left:5px; }
+    .nsl-player, .nsl-shell.nsl-windowed .nsl-player { min-height:60px; padding:6px 10px; gap:8px; border-radius:11px; }
+    .nsl-player { grid-template-columns:minmax(130px,1fr) minmax(220px,1.65fr) minmax(120px,.75fr); }
+    .nsl-player button { width:27px; height:27px; }
+    .nsl-play-main { width:32px !important; height:32px !important; }
+    .nsl-controls { gap:4px; }
+    .nsl-control-row { gap:6px; }
+    .nsl-progress-row { gap:5px; font-size:10px; }
+    .nsl-track-title { font-size:12px; }
+    .nsl-track-sub { font-size:11px; margin-top:2px; }
+    .nsl-volume { gap:6px; width:185px; min-width:125px; }
+    .nsl-volume-value { width:34px; font-size:10px; }
+    .nsl-pagination { gap:5px; padding:6px; font-size:11px; }
+    .nsl-anime { border-radius:10px; margin-bottom:6px; }
+    .nsl-anime-head { padding:5px 8px; gap:6px; }
+    .nsl-anime-main { font-size:12px; }
+    .nsl-anime-tags { gap:4px; }
+    .nsl-chip { padding:2px 6px; font-size:10px; }
+    .nsl-anime-only .nsl-anime-head { min-height:35px; }
+    .nsl-coverage-view { padding:7px 8px; }
+    .nsl-coverage-view .nsl-coverage-controls { margin:0 0 7px; }
+    .nsl-coverage-controls { gap:6px; margin:6px 0; }
+    .nsl-coverage-controls select { height:27px; border-radius:6px; font-size:11px; }
+    .nsl-coverage-mini { gap:7px; grid-template-columns:repeat(auto-fit,minmax(165px,1fr)); }
+    .nsl-coverage-kpis { gap:5px; margin:0 0 7px; }
+    .nsl-coverage-kpis strong { font-size:16px; }
+    .nsl-coverage-heading { font-size:13px; margin:10px 0 5px; }
+    .nsl-coverage-note { font-size:11px; line-height:1.4; }
+    .nsl-coverage-table { font-size:11px; }
+    .nsl-coverage-table th, .nsl-coverage-table td { padding:5px; }
+    .nsl-compact-stat { font-size:11px; padding:2px 0; }
+    .nsl-modal { padding:10px; }
+    .nsl-modal-card { border-radius:13px; }
+    .nsl-modal-head { padding:8px 10px; gap:7px; }
+    .nsl-modal-title { font-size:15px; }
+    .nsl-modal-nav { gap:4px; }
+    .nsl-modal-nav .nsl-page-btn { min-height:27px; padding:0 8px; }
+    .nsl-modal-position { min-width:50px; font-size:11px; }
+    .nsl-close { width:29px; height:29px; border-radius:8px; font-size:18px; }
+    .nsl-modal-body { padding:9px; gap:8px; }
+    .nsl-info-grid { gap:6px; }
+    .nsl-card { padding:7px; border-radius:10px; font-size:12px; }
+    .nsl-label { font-size:10px; margin-bottom:3px; }
+    .nsl-tags { gap:4px; }
+    .nsl-video { max-height:380px; border-radius:10px; }
+    .nsl-toast { padding:8px 10px; font-size:12px; border-radius:9px; }
+    /* Keep quiz answer readable and allow Russian titles to wrap indefinitely. */
+    .nsl-quiz-cover { width:225px; padding:6px; border-radius:11px; }
+    .nsl-quiz-cover.nsl-visible { gap:4px; }
+    .nsl-quiz-cover img { border-radius:8px; }
+    .nsl-quiz-cover-title-ru { font-size:11px; line-height:1.25; padding:5px 6px 4px; white-space:normal; overflow-wrap:anywhere; text-overflow:clip; }
+    .nsl-quiz-cover-meta { font-size:10px; gap:2px; padding:0 5px 5px; }
+    .nsl-quiz-cover-meta-row { padding:3px 4px; }
+    @media (max-width:900px) {
+      .nsl-shell.nsl-windowed .nsl-volume { display:none; }
+      .nsl-shell.nsl-windowed .nsl-player { grid-template-columns:minmax(0,1fr) minmax(0,1.6fr); }
+    }
+
   `;
 
   GM_addStyle(css);
@@ -306,7 +411,7 @@
       this.session = this.readStorage('nsl-session-v1', {});
       this.virtualData = [];
       this.virtualStart = -1;
-      this.virtualRowHeight = 39;
+      this.virtualRowHeight = 35;
       this.windowed = GM_getValue('nsl-windowed-v1', false) === true;
       this.sidebarWidth = Number(GM_getValue('nsl-sidebar-width-v1', 310)) || 310;
       this.state = { visible: false, currentTrack: null, playing: false, repeating: false, seeking: false, volumeSeeking: false, volume: 0.8, lastVolume: 0.8 };
