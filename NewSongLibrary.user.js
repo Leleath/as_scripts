@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         New Song Library
-// @version      0.30
+// @version      0.38
 // @description  Song List with Music Player
 // @author       Kaomaru
 // @match        https://animemusicquiz.com/
@@ -25,7 +25,7 @@
   'use strict';
 
   const APP = {
-    version: '0.30',
+    version: '0.38',
     rootId: 'nsl-root',
     storageKey: 'playerStatusList',
     quizCoverSettingKey: 'nsl-quiz-cover-enabled-v1',
@@ -57,7 +57,7 @@
     .nsl-hidden { display:none !important; }
     .nsl-shell { position:fixed; inset:0; z-index:100; background:linear-gradient(180deg,rgba(7,9,13,.92),rgba(7,9,13,.82)); backdrop-filter:blur(8px); padding:12px 14px 14px; overflow:hidden; }
     .nsl-app { height:calc(100vh - 64px); max-width:1320px; margin:0 auto; display:grid; grid-template-rows:minmax(0,1fr) auto; gap:12px; }
-    .nsl-layout { min-height:0; display:grid; grid-template-columns:310px minmax(0,1fr); gap:12px; }
+    .nsl-layout { min-height:0; display:grid; grid-template-columns:minmax(160px,var(--nsl-sidebar-width,310px)) 10px minmax(0,1fr); gap:0; }
     .nsl-panel { min-height:0; border:1px solid rgba(255,255,255,.08); border-radius:18px; background:rgba(23,26,33,.94); box-shadow:var(--shadow); overflow:hidden; }
     .nsl-sidebar { display:flex; flex-direction:column; }
     .nsl-head { padding:14px; border-bottom:1px solid rgba(255,255,255,.08); background:linear-gradient(135deg,rgba(110,231,183,.12),rgba(96,165,250,.08)); }
@@ -184,6 +184,102 @@
     .nsl-quiz-cover-meta-label { color:#98a2b3; margin-right:4px; }
     .nsl-quiz-cover-meta-value { color:#edf1f7; }
     @media (max-width:900px){ .nsl-shell{padding:10px}.nsl-app{height:calc(100vh - 20px)}.nsl-layout{grid-template-columns:1fr}.nsl-sidebar{max-height:42vh}.nsl-player{grid-template-columns:1fr;gap:8px}.nsl-volume{justify-self:stretch;width:100%}.nsl-song{grid-template-columns:56px minmax(0,1fr) 60px 48px 90px}.nsl-info-grid{grid-template-columns:1fr} }
+    .nsl-virtual-entry { box-sizing:border-box; border-bottom:1px solid rgba(255,255,255,.06); overflow:hidden; padding:4px 8px; display:flex; align-items:center; gap:8px; min-width:0; }
+    .nsl-virtual-entry:has(.nsl-virtual-song) { display:block; }
+    .nsl-virtual-entry.nsl-anime { margin:0; border-radius:0; border:0; }
+    .nsl-virtual-entry.nsl-group-heading { border-bottom:1px solid rgba(255,255,255,.09); }
+    .nsl-virtual-entry.nsl-group-heading { background:rgba(255,255,255,.06); border-bottom:1px solid rgba(255,255,255,.09); padding:0 10px; }
+    .nsl-group-heading .nsl-anime-main { min-width:0; flex:1; font-size:12px; }
+    .nsl-group-heading .nsl-anime-status { max-width:118px; flex:0 0 auto; }
+    .nsl-virtual-inline-anime { color:#8da3c1; font-size:10px; font-weight:500; margin-left:7px; }
+    .nsl-virtual-entry .nsl-song { border-top:0; padding:0 3px; grid-template-columns:50px minmax(0,1fr) 67px 50px 112px; gap:5px; }
+    .nsl-virtual-entry .nsl-song-name { font-size:12px; }
+    .nsl-shell.nsl-windowed .nsl-virtual-entry .nsl-song { grid-template-columns:43px minmax(0,1fr) 60px 45px 106px; }
+    .nsl-virtual-entry .nsl-song .nsl-icon-btn { width:27px; height:27px; }
+    .nsl-virtual-anime { display:none; }
+    .nsl-anime-short { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .nsl-artist-jump { cursor:pointer; background:transparent; border:0; color:#93c5fd; text-align:left; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700; }
+    .nsl-coverage-mini { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; }
+    .nsl-compact-stat { display:flex; justify-content:space-between; gap:8px; padding:3px 0; font-size:12px; border-bottom:1px solid rgba(255,255,255,.06); }
+    .nsl-compact-stat span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .nsl-coverage-kpis { margin:0 0 10px; grid-template-columns:repeat(auto-fit,minmax(105px,1fr)); gap:7px; }
+    .nsl-coverage-kpis strong { font-size:18px; }
+    /* Library modes: Songs / Anime / Coverage. Shared sidebar stays on screen. */
+    .nsl-app { grid-template-rows:auto minmax(0,1fr) auto; }
+    .nsl-library-top { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 12px; border-bottom:1px solid rgba(255,255,255,.08); background:rgba(12,15,21,.9); user-select:none; }
+    .nsl-shell.nsl-windowed .nsl-library-top { cursor:move; touch-action:none; }
+    .nsl-library-top button, .nsl-library-top a, .nsl-library-top input, .nsl-library-top select { cursor:pointer; touch-action:auto; }
+    .nsl-divider-drag { position:relative; min-width:10px; height:100%; cursor:col-resize; touch-action:none; user-select:none; }
+    .nsl-divider-drag::before { content:''; position:absolute; left:4px; top:12px; bottom:12px; width:2px; border-radius:3px; background:rgba(255,255,255,.19); transition:background .15s; }
+    .nsl-divider-drag:hover::before, .nsl-divider-drag.nsl-resizing::before { background:var(--accent); }
+    .nsl-layout.nsl-is-resizing, .nsl-layout.nsl-is-resizing * { cursor:col-resize !important; user-select:none !important; }
+    .nsl-view-tabs { display:flex; flex-wrap:wrap; gap:5px; }
+    .nsl-view-tab { border:1px solid rgba(255,255,255,.10); border-radius:9px; padding:6px 12px; color:var(--text); background:rgba(255,255,255,.05); cursor:pointer; font-weight:700; font-size:12px; }
+    .nsl-view-tab.is-active { color:#07130f; background:var(--accent); border-color:var(--accent); }
+    .nsl-window-tools { display:flex; align-items:center; gap:8px; }
+    .nsl-window-handle { color:var(--muted); font-size:12px; padding:5px 8px; cursor:inherit; user-select:none; }
+    .nsl-shell.nsl-windowed .nsl-window-handle { pointer-events:none; }
+    .nsl-shell:not(.nsl-windowed) .nsl-window-handle { display:none; }
+    .nsl-window-toggle { flex-shrink:0; }
+    .nsl-coverage-view { min-height:0; overflow:auto; padding:14px; scrollbar-width:thin; }
+    .nsl-coverage-view .nsl-coverage-controls { margin:0 0 12px; }
+    .nsl-anime-only .nsl-anime-head { min-height:43px; }
+    .nsl-view-hidden { display:none !important; }
+    .nsl-shell.nsl-windowed { inset:auto; left:clamp(0px, 6vw, 120px); top:clamp(0px, 7vh, 85px); width:min(1120px, 88vw); height:min(740px, 82vh); min-width:min(640px, 95vw); min-height:min(410px, 90vh); max-width:100vw; max-height:100vh; padding:8px; border-radius:17px; border:1px solid rgba(255,255,255,.18); box-shadow:0 25px 90px rgba(0,0,0,.7); resize:both; }
+    .nsl-shell.nsl-windowed .nsl-app { height:100%; max-width:none; gap:8px; }
+    .nsl-shell.nsl-windowed .nsl-layout { grid-template-columns:minmax(160px,var(--nsl-sidebar-width,310px)) 10px minmax(0,1fr); gap:0; }
+    .nsl-shell.nsl-windowed .nsl-sidebar { max-height:none; }
+    .nsl-shell.nsl-windowed .nsl-toolbar { flex-wrap:wrap; padding:9px 11px; }
+    .nsl-shell.nsl-windowed .nsl-player { grid-template-columns:minmax(130px,1fr) minmax(205px,1.3fr) minmax(100px,.7fr); gap:8px; padding:7px 10px; }
+    .nsl-shell.nsl-windowed .nsl-progress-row { grid-template-columns:35px minmax(60px,1fr) 35px; gap:5px; }
+    .nsl-shell.nsl-windowed .nsl-volume { min-width:0; width:100%; }
+    .nsl-shell.nsl-windowed .nsl-volume .nsl-bar { min-width:30px; }
+    .nsl-shell.nsl-windowed .nsl-song { grid-template-columns:47px minmax(0,1fr) 48px 43px 88px; gap:5px; padding:5px 6px; }
+    .nsl-shell.nsl-windowed .nsl-list { padding:7px; }
+    /* v0.36 compact library: reduce empty vertical space without shrinking controls excessively. */
+    .nsl-virtual-entry { padding:3px 9px; gap:7px; }
+    .nsl-virtual-entry.nsl-group-heading { padding:0 10px; }
+    .nsl-virtual-entry .nsl-song { min-height:0; padding:0 2px; }
+    .nsl-virtual-entry .nsl-song .nsl-icon-btn { width:26px; height:26px; border-radius:8px; }
+    .nsl-virtual-entry .nsl-song-type { padding:3px 6px; }
+    .nsl-virtual-entry .nsl-anime-status { height:27px; font-size:11px; max-width:118px; }
+    .nsl-virtual-entry .nsl-chip { padding:3px 7px; font-size:11px; }
+    .nsl-virtual-entry .nsl-artist-jump { font-size:13px; }
+    .nsl-virtual-entry .nsl-anime-short { font-size:13px; }
+    .nsl-virtual-entry .nsl-song-name { font-size:12px; }
+    /* v0.38: clear row boundaries in Anime view without increasing row height. */
+    .nsl-virtual-entry.nsl-anime:not(.nsl-group-heading) {
+      border:0;
+      border-bottom:1px solid rgba(180,195,215,.17);
+      border-radius:0;
+      transition:background-color .12s ease;
+    }
+    .nsl-virtual-entry.nsl-anime:not(.nsl-group-heading):hover {
+      background:rgba(110,231,183,.075);
+      border-bottom-color:rgba(180,195,215,.3);
+    }
+    .nsl-toolbar { padding:8px 11px; gap:7px; }
+    .nsl-toolbar-title { font-size:15px; }
+    .nsl-toolbar-meta { font-size:11px; }
+    .nsl-view-tab { padding:5px 10px; }
+    .nsl-library-top { padding:6px 10px; }
+    .nsl-list { padding:7px 9px; }
+    .nsl-head { padding:10px 12px; }
+    .nsl-filters { padding:9px; }
+    .nsl-group { padding:8px; margin-bottom:8px; }
+    .nsl-group-title { margin-bottom:6px; }
+    .nsl-player { min-height:72px; padding:8px 12px; gap:10px; }
+    .nsl-coverage-view { padding:10px; }
+    .nsl-shell.nsl-windowed .nsl-list { padding:5px 7px; }
+    .nsl-shell.nsl-windowed .nsl-toolbar { padding:7px 9px; }
+    @media (max-width:900px) {
+      .nsl-shell .nsl-layout { grid-template-columns:minmax(160px,var(--nsl-sidebar-width,310px)) 10px minmax(0,1fr); }
+      .nsl-shell.nsl-windowed .nsl-layout { grid-template-columns:minmax(160px,var(--nsl-sidebar-width,310px)) 10px minmax(0,1fr); }
+      .nsl-shell.nsl-windowed .nsl-player { grid-template-columns:minmax(0,1fr) minmax(0,1.6fr); }
+      .nsl-shell.nsl-windowed .nsl-volume { display:none; }
+      .nsl-library-top { flex-wrap:wrap; }
+    }
+
   `;
 
   GM_addStyle(css);
@@ -205,6 +301,14 @@
       this.coverRequestId = 0;
       this.savedSongs = this.readSavedSongs();
       this.page = 0;
+      this.animePage = 0;
+      this.activeView = 'songs';
+      this.session = this.readStorage('nsl-session-v1', {});
+      this.virtualData = [];
+      this.virtualStart = -1;
+      this.virtualRowHeight = 39;
+      this.windowed = GM_getValue('nsl-windowed-v1', false) === true;
+      this.sidebarWidth = Number(GM_getValue('nsl-sidebar-width-v1', 310)) || 310;
       this.state = { visible: false, currentTrack: null, playing: false, repeating: false, seeking: false, volumeSeeking: false, volume: 0.8, lastVolume: 0.8 };
       this.audio = new Audio();
       this.audio.volume = this.state.volume;
@@ -218,6 +322,7 @@
       this.bindUI();
       this.bindSocket();
       this.hookLibraryCache();
+      this.restoreSession();
     }
 
     get socket() { return win?.[socketName]?._socket; }
@@ -241,12 +346,89 @@
       GM_setValue(APP.storageKey, JSON.stringify([...this.savedSongs]));
     }
 
+    readStorage(key, fallback) {
+      try { const val = GM_getValue(key, ''); return typeof val === 'string' && val ? JSON.parse(val) : fallback; }
+      catch (_) { return fallback; }
+    }
+
+    saveSession() {
+      if (!this.ui.form) return;
+      const values = {};
+      for (const element of this.ui.form.elements) {
+        if (!element.name || element.name === 'quizCoverEnabled') continue;
+        values[element.name] = element.type === 'checkbox' ? element.checked : element.value;
+      }
+      const rect = this.ui.shell.getBoundingClientRect();
+      const data = { filters: values, view: this.activeView, windowed: this.windowed,
+        left: rect.left, top: rect.top, width: rect.width, height: rect.height,
+        scroll: this.ui.list.scrollTop, volume: this.audio.volume,
+        track: this.state.currentTrack?.key || null, time: Number.isFinite(this.audio.currentTime) ? this.audio.currentTime : 0 };
+      GM_setValue('nsl-session-v1', JSON.stringify(data));
+    }
+
+    scheduleSessionSave() {
+      clearTimeout(this.sessionSaveTimer);
+      this.sessionSaveTimer = setTimeout(() => this.saveSession(), 500);
+    }
+
+    restoreSession() {
+      const session = this.session;
+      if (!session || typeof session !== 'object') return;
+      for (const [name, value] of Object.entries(session.filters || {})) {
+        const element = this.ui.form.elements[name];
+        if (!element || typeof value === 'object') continue;
+        if (element.type === 'checkbox') element.checked = Boolean(value);
+        else element.value = String(value);
+      }
+      if (session.windowed) {
+        this.setWindowMode(true);
+        if (Number.isFinite(session.width)) this.ui.shell.style.width = Math.min(innerWidth, Math.max(640, session.width)) + 'px';
+        if (Number.isFinite(session.height)) this.ui.shell.style.height = Math.min(innerHeight, Math.max(410, session.height)) + 'px';
+        if (Number.isFinite(session.left)) this.ui.shell.style.left = Math.max(0, Math.min(innerWidth-100, session.left)) + 'px';
+        if (Number.isFinite(session.top)) this.ui.shell.style.top = Math.max(0, Math.min(innerHeight-60, session.top)) + 'px';
+      }
+      if (Number.isFinite(session.volume)) this.setVolumeValue(Math.max(0, Math.min(1, session.volume)));
+      this.setView(['songs','anime','coverage','artists'].includes(session.view) ? session.view : 'songs');
+    }
+
+    restoreTrackFromSession() {
+      if (this.sessionTrackRestored || !this.songMap.length) return;
+      this.sessionTrackRestored = true;
+      const session = this.session || {};
+      if (session.track) {
+        const song = this.songByKey.get(session.track);
+        if (song) {
+          this.state.currentTrack = song;
+          this.ui.trackTitle.textContent = song.songEntry.name;
+          this.ui.trackSub.textContent = this.displayAnimeName(song).main + ' (resume available)';
+          this.updatePlayState();
+        }
+      }
+      if (session.view !== 'coverage' && Number.isFinite(session.scroll)) {
+        this.ui.list.scrollTop = session.scroll;
+        this.renderVirtual();
+      }
+    }
+
     buildUI() {
       const root = document.createElement('div');
       root.id = APP.rootId;
       root.innerHTML = `
         <div class="nsl-shell nsl-hidden" data-nsl-shell>
           <div class="nsl-app">
+            <div class="nsl-library-top">
+              <div class="nsl-view-tabs" role="tablist" aria-label="Library views">
+                <button class="nsl-view-tab is-active" type="button" data-view="songs">Songs</button>
+                <button class="nsl-view-tab" type="button" data-view="anime">Anime</button>
+                <button class="nsl-view-tab" type="button" data-view="coverage">Coverage</button>
+                <button class="nsl-view-tab" type="button" data-view="artists">Artists</button>
+              </div>
+              <div class="nsl-window-tools">
+                <span class="nsl-window-handle" data-window-handle title="Drag using this top bar">Drag top bar</span>
+                <button class="nsl-view-tab nsl-window-toggle" type="button" data-window-toggle title="Toggle full screen / window">Window</button>
+                <button class="nsl-view-tab" type="button" data-library-close title="Close library">×</button>
+              </div>
+            </div>
             <div class="nsl-layout">
               <aside class="nsl-panel nsl-sidebar">
                 <div class="nsl-head">
@@ -258,15 +440,20 @@
                   <button class="nsl-submit" type="submit">Search</button>
                 </form>
               </aside>
+              <div class="nsl-divider-drag" data-layout-divider role="separator" aria-label="Resize filters and list" aria-orientation="vertical" title="Drag to resize filters"></div>
               <main class="nsl-panel nsl-content">
                 <div class="nsl-toolbar">
                   <div>
-                    <div class="nsl-toolbar-title">Song Library</div>
+                    <div class="nsl-toolbar-title" data-content-title>Song Library</div>
                     <div class="nsl-toolbar-meta" data-result-info>Waiting for library cache...</div>
                   </div>
-                  <div class="nsl-row"><button class="nsl-page-btn" type="button" data-coverage>📊 Coverage</button><button class="nsl-page-btn" type="button" data-spoilers title="Blur anime, song and artist names">🙈 Hide</button><button class="nsl-page-btn" type="button" data-shuffle title="Shuffle songs matching current filters">🔀 Shuffle</button><button class="nsl-page-btn" type="button" data-refresh>Refresh</button></div>
+                  <div class="nsl-row"><button class="nsl-page-btn" type="button" data-spoilers title="Blur anime, song and artist names">🙈 Hide</button><button class="nsl-page-btn" type="button" data-shuffle title="Shuffle songs matching current filters">🔀 Shuffle</button></div>
                 </div>
                 <div class="nsl-list" data-list></div>
+                <div class="nsl-coverage-view nsl-view-hidden" data-coverage-view>
+                  <div class="nsl-coverage-controls"><label>Scope: <select data-coverage-scope><option value="filtered">Current filters</option><option value="all">Entire library</option></select></label></div>
+                  <div data-coverage-content></div>
+                </div>
               </main>
             </div>
             <footer class="nsl-player">
@@ -292,13 +479,6 @@
                 <div class="nsl-bar" data-volume-bar title="Volume"><div class="nsl-bar-fill" data-volume-fill style="width:80%"></div></div><span class="nsl-volume-value" data-volume-value>80%</span>
               </div>
             </footer>
-          </div>
-        </div>
-        <div class="nsl-modal nsl-hidden" data-coverage-modal>
-          <div class="nsl-coverage-panel">
-            <div class="nsl-modal-head"><h3 class="nsl-modal-title">📊 AMQ Library Coverage</h3><button class="nsl-close" type="button" data-coverage-close>×</button></div>
-            <div class="nsl-coverage-controls"><label>Scope: <select data-coverage-scope><option value="filtered">Current filters</option><option value="all">Entire library</option></select></label></div>
-            <div data-coverage-content></div>
           </div>
         </div>
         <div class="nsl-modal nsl-hidden" data-modal>
@@ -340,7 +520,8 @@
       this.ui.volumeBar = root.querySelector('[data-volume-bar]');
       this.ui.volumeToggle = root.querySelector('[data-volume-toggle]');
       this.ui.volumeValue = root.querySelector('[data-volume-value]');
-      this.ui.coverageModal = root.querySelector('[data-coverage-modal]');
+      this.ui.coverageView = root.querySelector('[data-coverage-view]');
+      this.ui.contentTitle = root.querySelector('[data-content-title]');
       this.ui.coverageContent = root.querySelector('[data-coverage-content]');
       this.ui.modal = root.querySelector('[data-modal]');
       this.ui.modalTitle = root.querySelector('[data-modal-title]');
@@ -354,6 +535,9 @@
 
       this.injectMenuButton();
       this.fillCustomLists();
+      this.setWindowMode(this.windowed);
+      this.applySidebarWidth();
+      this.setView('songs');
     }
 
     renderFilterHtml() {
@@ -372,7 +556,7 @@
           </div>
         </section>
         <section class="nsl-group"><h3 class="nsl-group-title">Anime Status</h3><div class="nsl-grid2">${checks([['ptw', 'Plan to Watch'], ['watching', 'Watching'], ['completed', 'Completed'], ['onhold', 'On Hold'], ['dropped', 'Dropped'], ['statusOther', 'Other']])}</div></section>
-        <section class="nsl-group"><h3 class="nsl-group-title">Anime Type</h3><div class="nsl-grid2">${checks([['tv', 'TV'], ['movie', 'Movie'], ['special', 'Special'], ['ova', 'OVA'], ['ona', 'ONA'], ['typeOther', 'Other']])}</div></section>
+        <section class="nsl-group"><h3 class="nsl-group-title">Anime Type</h3><div class="nsl-grid2">${checks([['tv', 'TV'], ['season', 'Season'], ['ova', 'OVA'], ['movie', 'Movie'], ['ona', 'ONA'], ['movieLower', 'movie'], ['tvSpecial', 'TV Special'], ['special', 'special'], ['doujin', 'Doujin'], ['musicVideo', 'Music Video'], ['gameCutsceneCompilation', 'Game Cutscene Compilation'], ['typeOther', 'Other']])}</div></section>
         <section class="nsl-group"><h3 class="nsl-group-title">Anime Year</h3><div class="nsl-grid2"><label class="nsl-check">From <input class="nsl-input" type="number" name="yearFrom" min="1900" max="2026" value="1900"></label><label class="nsl-check">To <input class="nsl-input" type="number" name="yearTo" min="1900" max="2026" value="2026"></label></div></section>
         <section class="nsl-group"><h3 class="nsl-group-title">Song Type</h3><div class="nsl-grid2">${checks([['op', 'Opening'], ['rebroadcast', 'Rebroadcast'], ['ed', 'Ending'], ['dub', 'Dub'], ['insert', 'Insert']])}</div></section>
         <section class="nsl-group"><h3 class="nsl-group-title">Song Category</h3><div class="nsl-grid2">${checks([['standard', 'Standard'], ['instrumental', 'Instrumental'], ['chanting', 'Chanting'], ['character', 'Character']])}</div></section>
@@ -411,7 +595,7 @@
     }
 
     bindUI() {
-      this.ui.form.addEventListener('submit', (event) => { event.preventDefault(); this.shuffleOrder = null; clearTimeout(this.renderTimer); this.page = 0; this.render(); });
+      this.ui.form.addEventListener('submit', (event) => { event.preventDefault(); this.shuffleOrder = null; clearTimeout(this.renderTimer); this.page = 0; this.animePage = 0; this.render(); });
       ['keydown', 'keypress', 'keyup'].forEach((type) => {
         this.ui.form.addEventListener(type, (event) => {
           if (event.target.closest('input, select, textarea')) event.stopPropagation();
@@ -421,6 +605,7 @@
             this.shuffleOrder = null;
             clearTimeout(this.renderTimer);
             this.page = 0;
+            this.animePage = 0;
             this.render();
           }
         }, true);
@@ -446,11 +631,19 @@
         this.page = 0;
         this.render();
       });
-      this.ui.root.querySelector('[data-refresh]').addEventListener('click', () => this.refreshLibrary());
-      this.ui.root.querySelector('[data-coverage]').addEventListener('click', () => this.openCoverage());
-      this.ui.root.querySelector('[data-coverage-close]').addEventListener('click', () => this.ui.coverageModal.classList.add('nsl-hidden'));
-      this.ui.coverageModal.addEventListener('click', event => { if (event.target === this.ui.coverageModal) this.ui.coverageModal.classList.add('nsl-hidden'); });
-      this.ui.root.querySelector('[data-coverage-scope]').addEventListener('change', () => this.renderCoverage());
+      this.ui.root.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => this.setView(btn.dataset.view)));
+      this.ui.root.querySelector('[data-window-toggle]').addEventListener('click', () => this.setWindowMode(!this.windowed));
+      this.ui.root.querySelector('[data-library-close]').addEventListener('click', () => this.toggleUI(false));
+      this.bindWindowDrag();
+      this.bindLayoutDivider();
+      this.ui.root.querySelector('[data-coverage-scope]').addEventListener('change', () => { this.coverageCache = null; this.renderCoverage(); });
+      this.ui.list.addEventListener('scroll', () => { this.renderVirtual(); this.scheduleSessionSave(); }, {passive:true});
+      this.ui.form.addEventListener('change', () => this.scheduleSessionSave());
+      this.ui.form.addEventListener('input', () => this.scheduleSessionSave());
+      this.ui.root.querySelectorAll('[data-view]').forEach(button => button.addEventListener('click', () => this.scheduleSessionSave()));
+      this.audio.addEventListener('pause', () => this.scheduleSessionSave());
+      this.audio.addEventListener('seeked', () => this.scheduleSessionSave());
+      window.addEventListener('pagehide', () => this.saveSession());
       this.ui.root.querySelector('[data-spoilers]').addEventListener('click', () => this.toggleSpoilers());
       this.updateSpoilerUI();
       this.ui.root.querySelector('[data-shuffle]').addEventListener('click', () => this.shuffleSongs());
@@ -480,7 +673,7 @@
       this.ui.root.querySelector('[data-modal-prev]').addEventListener('click', () => this.navigateModal(-1));
       this.ui.root.querySelector('[data-modal-next]').addEventListener('click', () => this.navigateModal(1));
       this.audio.addEventListener('timeupdate', () => this.updateProgress());
-      this.audio.addEventListener('loadedmetadata', () => this.updateDuration());
+      this.audio.addEventListener('loadedmetadata', () => { if (this.pendingResumeTime) { this.audio.currentTime = Math.min(this.pendingResumeTime, this.audio.duration || this.pendingResumeTime); this.pendingResumeTime = 0; } this.updateDuration(); });
       this.audio.addEventListener('play', () => { this.state.playing = true; this.updatePlayState(); });
       this.audio.addEventListener('pause', () => { this.state.playing = false; this.updatePlayState(); });
       this.audio.addEventListener('ended', () => this.state.repeating ? this.audio.play() : this.nextTrack());
@@ -488,7 +681,7 @@
 
     debouncedRender(delay = 350) {
       clearTimeout(this.renderTimer);
-      this.renderTimer = setTimeout(() => { this.page = 0; this.render(); }, delay);
+      this.renderTimer = setTimeout(() => { this.page = 0; this.animePage = 0; this.render(); }, delay);
     }
 
     bindSocket() {
@@ -520,6 +713,108 @@
     toggleUI(force) {
       this.state.visible = typeof force === 'boolean' ? force : !this.state.visible;
       this.ui.shell.classList.toggle('nsl-hidden', !this.state.visible);
+      if (this.state.visible) this.applySidebarWidth();
+      this.scheduleSessionSave();
+    }
+
+    setWindowMode(windowed) {
+      this.windowed = Boolean(windowed);
+      this.ui.shell.classList.toggle('nsl-windowed', this.windowed);
+      const button = this.ui.root.querySelector('[data-window-toggle]');
+      button.textContent = this.windowed ? '⛶ Full screen' : '▣ Window';
+      button.title = this.windowed ? 'Switch to full screen' : 'Switch to movable window';
+      GM_setValue('nsl-windowed-v1', this.windowed);
+      if (this.ui.form) this.scheduleSessionSave();
+      if (!this.windowed) {
+        this.ui.shell.style.left = '';
+        this.ui.shell.style.top = '';
+      }
+    }
+
+    bindWindowDrag() {
+      // The entire upper bar is the drag handle, except interactive controls.
+      const bar = this.ui.root.querySelector('.nsl-library-top');
+      let drag = null;
+      bar.addEventListener('pointerdown', event => {
+        if (!this.windowed || event.button !== 0 || event.target.closest('button, a, input, select, textarea, [role="button"]')) return;
+        const rect = this.ui.shell.getBoundingClientRect();
+        drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, left: rect.left, top: rect.top };
+        bar.setPointerCapture(event.pointerId);
+        event.preventDefault();
+      });
+      bar.addEventListener('pointermove', event => {
+        if (!drag || !this.windowed || drag.pointerId !== event.pointerId) return;
+        const rect = this.ui.shell.getBoundingClientRect();
+        this.ui.shell.style.left = `${Math.max(0, Math.min(Math.max(0, innerWidth - rect.width), drag.left + event.clientX - drag.x))}px`;
+        this.ui.shell.style.top = `${Math.max(0, Math.min(Math.max(0, innerHeight - rect.height), drag.top + event.clientY - drag.y))}px`;
+      });
+      const stop = event => { if (drag?.pointerId === event.pointerId) drag = null; };
+      bar.addEventListener('pointerup', stop);
+      bar.addEventListener('pointercancel', stop);
+      bar.addEventListener('lostpointercapture', stop);
+    }
+
+    applySidebarWidth() {
+      const layout = this.ui.root.querySelector('.nsl-layout');
+      if (!layout || layout.clientWidth < 400) return;
+      // Leave at least 220px for the song/anime/coverage pane.
+      const max = Math.max(160, layout.clientWidth - 230);
+      this.sidebarWidth = Math.max(160, Math.min(max, this.sidebarWidth));
+      layout.style.setProperty('--nsl-sidebar-width', `${this.sidebarWidth}px`);
+    }
+
+    bindLayoutDivider() {
+      const divider = this.ui.root.querySelector('[data-layout-divider]');
+      const layout = this.ui.root.querySelector('.nsl-layout');
+      let resizing = null;
+      divider.addEventListener('pointerdown', event => {
+        if (event.button !== 0) return;
+        const sidebar = layout.querySelector('.nsl-sidebar');
+        resizing = { pointerId: event.pointerId, startX: event.clientX, startWidth: sidebar.getBoundingClientRect().width };
+        divider.setPointerCapture(event.pointerId);
+        divider.classList.add('nsl-resizing');
+        layout.classList.add('nsl-is-resizing');
+        event.preventDefault();
+      });
+      divider.addEventListener('pointermove', event => {
+        if (!resizing || resizing.pointerId !== event.pointerId) return;
+        const max = Math.max(160, layout.clientWidth - 230);
+        this.sidebarWidth = Math.max(160, Math.min(max, resizing.startWidth + event.clientX - resizing.startX));
+        layout.style.setProperty('--nsl-sidebar-width', `${this.sidebarWidth}px`);
+      });
+      const finish = event => {
+        if (!resizing || resizing.pointerId !== event.pointerId) return;
+        resizing = null;
+        divider.classList.remove('nsl-resizing');
+        layout.classList.remove('nsl-is-resizing');
+        GM_setValue('nsl-sidebar-width-v1', this.sidebarWidth);
+      };
+      divider.addEventListener('pointerup', finish);
+      divider.addEventListener('pointercancel', finish);
+      divider.addEventListener('lostpointercapture', finish);
+      if (typeof ResizeObserver !== 'undefined') {
+        const observer = new ResizeObserver(() => this.applySidebarWidth());
+        observer.observe(layout);
+        this.layoutResizeObserver = observer;
+      }
+    }
+
+    setView(view) {
+      if (!['songs', 'anime', 'coverage', 'artists'].includes(view)) return;
+      this.activeView = view;
+      this.ui.root.querySelectorAll('[data-view]').forEach(button => {
+        const selected = button.dataset.view === view;
+        button.classList.toggle('is-active', selected);
+        button.setAttribute('aria-selected', String(selected));
+      });
+      this.ui.contentTitle.textContent = ({ songs: 'Song Library', anime: 'Anime Library', coverage: 'Coverage 2.0', artists: 'Artists' })[view];
+      this.ui.list.classList.toggle('nsl-view-hidden', view === 'coverage');
+      this.ui.coverageView.classList.toggle('nsl-view-hidden', view !== 'coverage');
+      this.virtualStart = -1;
+      this.ui.list.scrollTop = 0;
+      if (view === 'coverage') this.renderCoverage();
+      else this.renderPage();
+      this.scheduleSessionSave();
     }
 
     createSongMap() {
@@ -579,6 +874,7 @@
       this.rebuildIndexes();
       this.fillCustomLists();
       this.render();
+      this.restoreTrackFromSession();
       this.emit('get anime status list');
       this.emit('get player status list');
     }
@@ -615,7 +911,28 @@
       const names = [...(artist.searchNames || []), artist.name].filter(Boolean);
       (artist.artistMembers || []).forEach((member) => names.push(...(member.searchNames || []), member.name));
       (artist.groupMembers || []).forEach((member) => names.push(...(member.searchNames || []), member.name));
+      // Some credits have no structured members. Index obvious joint credits by
+      // their performers too, so exact artist search includes collaborations.
+      names.push(...this.splitJointArtistCredit(artist.name));
       return names.filter(Boolean);
+    }
+
+    splitJointArtistCredit(name) {
+      const text = String(name || '').trim();
+      if (!text || !/(\s+&\s+|\s+feat\.?\s+|\s+featuring\s+|\s*[•·]\s*|,\s+|\s+\/\s+|\s+\+\s+)/i.test(text)) return [];
+      return text.split(/\s+&\s+|\s+feat\.?\s+|\s+featuring\s+|\s*[•·]\s*|,\s+|\s+\/\s+|\s+\+\s+/i)
+        .map(part => part.trim()).filter(Boolean);
+    }
+
+    artistCreditNames(artist) {
+      if (!artist) return ['Unknown artist'];
+      const members = (artist.artistMembers || []).map(m => m?.name?.trim()).filter(Boolean);
+      // A collaboration should be listed under the participating performers,
+      // instead of creating another row for each combination of credits.
+      if (members.length > 1) return [...new Set(members)];
+      const split = this.splitJointArtistCredit(artist.name);
+      if (split.length > 1) return [...new Set(split)];
+      return [String(artist.name || members[0] || 'Unknown artist').trim()];
     }
 
     onSocketCommand(event) {
@@ -755,15 +1072,26 @@
     }
 
     animeTypeAllowed(categoryName) {
-      const [firstRaw, secondRaw = ''] = String(categoryName).split(' ');
-      const first = firstRaw.toLowerCase();
-      const second = secondRaw.toLowerCase();
-      if (first === 'tv') return second === 'special' ? this.checked('special') : this.checked('tv');
-      if (first === 'season') return this.checked('tv');
-      if (first === 'movie') return this.checked('movie');
-      if (first === 'ova') return this.checked('ova');
-      if (first === 'ona') return this.checked('ona');
-      if (first === 'special') return this.checked('special');
+      // Match AMQ's exact category labels, including case-distinct values.
+      // Any unrecognized category remains controlled by "Other".
+      const name = String(categoryName || '').trim().replace(/\s+/g, ' ');
+      const categoryChecks = {
+        'TV': 'tv',
+        'Season': 'season',
+        'OVA': 'ova',
+        'Movie': 'movie',
+        'ONA': 'ona',
+        'movie': 'movieLower',
+        'TV Special': 'tvSpecial',
+        'special': 'special',
+        'Doujin': 'doujin',
+        'Music Video': 'musicVideo',
+        'Game Cutscene Compilation': 'gameCutsceneCompilation',
+      };
+      const checkbox = categoryChecks[name];
+      if (checkbox) return this.checked(checkbox);
+      // Preserve the previous handling of broader TV category labels.
+      if (/^tv\s+/i.test(name)) return this.checked('tv');
       return this.checked('typeOther');
     }
 
@@ -797,6 +1125,7 @@
       }
       this.shuffleOrder = new Map(keys.map((key, index) => [key, index]));
       this.page = 0;
+      this.animePage = 0;
       this.render();
     }
 
@@ -845,84 +1174,198 @@
     }
 
     openCoverage() {
-      this.ui.coverageModal.classList.remove('nsl-hidden');
-      this.renderCoverage();
+      this.setView('coverage');
     }
 
     renderCoverage() {
-      const useAll = this.ui.root.querySelector('[data-coverage-scope]').value === 'all';
-      const songs = useAll ? this.songMap : this.filterSongs();
-      const animeIds = new Set(songs.map(s => String(s.animeEntry.annId)));
-      const typeCounts = { op: 0, ed: 0, insert: 0, other: 0 };
-      const byAnime = new Map();
-      const byYear = new Map();
-      const byStatus = new Map();
-      const byType = new Map();
-      const add = (map, key, song) => {
-        const item = map.get(key) || { anime: new Set(), songs: 0, op: 0, ed: 0, insert: 0 };
-        item.anime.add(String(song.animeEntry.annId));
-        item.songs++;
-        if (Number(song.song.type) === 1) item.op++;
-        else if (Number(song.song.type) === 2) item.ed++;
-        else if (Number(song.song.type) === 3) item.insert++;
-        map.set(key, item);
-      };
+      if (this.activeView !== 'coverage') return;
+      const all = this.ui.root.querySelector('[data-coverage-scope]').value === 'all';
+      const songs = all ? this.songMap : this.filteredSongs;
+      // One pass, small maps and a few DOM rows. No per-category Sets of every anime.
+      const groups = { year:new Map(), type:new Map(), status:new Map(), artist:new Map() };
+      const unique = new Set();
+      let op=0, ed=0, ins=0, saved=0;
+      const count = (map,key) => map.set(key,(map.get(key)||0)+1);
       for (const song of songs) {
-        const type = Number(song.song.type);
-        if (type === 1) typeCounts.op++;
-        else if (type === 2) typeCounts.ed++;
-        else if (type === 3) typeCounts.insert++;
-        else typeCounts.other++;
-        add(byAnime, String(song.animeEntry.annId), song);
-        add(byYear, String(song.animeEntry.year || 'Unknown'), song);
-        const statusName = ({0:'Other',1:'Watching',2:'Completed',3:'On Hold',4:'Dropped',5:'Plan to Watch'})[Number(song.animeEntry.status)] || String(song.animeEntry.status);
-        add(byStatus, statusName, song);
-        add(byType, String(song.animeEntry.category?.name || 'Other'), song);
+        unique.add(song.animeEntry.annId);
+        const t = Number(song.song.type);
+        if(t===1) op++; else if(t===2) ed++; else if(t===3) ins++;
+        if(this.savedSongs.has(Number(song.songEntry.songId))) saved++;
+        count(groups.year,String(song.animeEntry.year||'Unknown'));
+        count(groups.type,String(song.animeEntry.category?.name||'Other'));
+        count(groups.status,({0:'Other',1:'Watching',2:'Completed',3:'On Hold',4:'Dropped',5:'Plan to Watch'})[song.animeEntry.status]||'Other');
+        count(groups.artist,song.songEntry.artist?.name||'Unknown');
       }
-      const kpi = (label, value) => `<div class="nsl-card"><div class="nsl-label">${label}</div><strong>${value}</strong></div>`;
-      const table = (label, map, cap = 50) => {
-        const rows = [...map].sort((a,b) => b[1].songs - a[1].songs).slice(0, cap)
-          .map(([key,v]) => `<tr><td>${this.escape(key)}</td><td>${v.anime.size}</td><td>${v.songs}</td><td>${v.op}</td><td>${v.ed}</td><td>${v.insert}</td></tr>`).join('');
-        return `<h4 class="nsl-coverage-heading">${label}</h4><div class="nsl-coverage-scroll"><table class="nsl-coverage-table"><thead><tr><th>Category</th><th>Anime</th><th>Songs</th><th>OP</th><th>ED</th><th>Insert</th></tr></thead><tbody>${rows || '<tr><td colspan="6">No data</td></tr>'}</tbody></table></div>`;
-      };
-      const animeNames = new Map();
-      for (const song of songs) if (!animeNames.has(String(song.animeEntry.annId))) animeNames.set(String(song.animeEntry.annId), this.displayAnimeName(song).main);
-      const animeMap = new Map([...byAnime].map(([key,v]) => [`${animeNames.get(key) || key} (#${key})`,v]));
-      this.ui.coverageContent.innerHTML =
-        `<div class="nsl-coverage-kpis">${kpi('Anime',animeIds.size)}${kpi('Songs',songs.length)}${kpi('Opening',typeCounts.op)}${kpi('Ending',typeCounts.ed)}${kpi('Insert',typeCounts.insert)}${kpi('Other types',typeCounts.other)}</div>` +
-        `<p class="nsl-coverage-note">Coverage is calculated from the AMQ library cache${useAll ? '' : ' using current filters'}. No Firebase or personal Tampermonkey lists required.</p>` +
-        table('By MAL status', byStatus) + table('By anime type', byType) + table('By year', byYear) +
-        table('Anime with the most songs', animeMap, 100);
+      const card = (title,number) => `<div class="nsl-card"><div class="nsl-label">${title}</div><strong>${number.toLocaleString()}</strong></div>`;
+      const summary = (label,map,limit=8) => `<div class="nsl-card"><h4 style="margin:0 0 8px">${label}</h4>${[...map].sort((a,b)=>b[1]-a[1]).slice(0,limit).map(([name,count])=>`<div class="nsl-compact-stat"><span title="${this.escape(name)}">${this.escape(name)}</span><strong>${count}</strong></div>`).join('')||'No data'}</div>`;
+      this.ui.coverageContent.innerHTML = `<div class="nsl-coverage-kpis">${card('Anime',unique.size)}${card('Songs',songs.length)}${card('OP',op)}${card('ED',ed)}${card('Insert',ins)}${card('Saved',saved)}</div><div class="nsl-coverage-mini">${summary('By anime type',groups.type)}${summary('By MAL status',groups.status)}${summary('Top years',groups.year,10)}${summary('Top artists',groups.artist,10)}</div><p class="nsl-coverage-note">Compact one-pass statistics · ${all?'Entire library':'Current filters'}</p>`;
     }
 
     render() {
       this.filteredSongs = this.sortSongs(this.filterSongs());
-      const uniqueAnime = new Set(this.filteredSongs.map((song) => song.animeEntry.annId));
-      this.ui.resultInfo.textContent = `${this.filteredSongs.length} songs / ${uniqueAnime.size} animes${this.shuffleOrder ? ' · 🔀 shuffled' : ''}${this.searchLimited ? ' · showing first ' + APP.searchLimit : ''}`;
-      this.renderPage();
+      const count = new Set(this.filteredSongs.map(song => song.animeEntry.annId)).size;
+      this.ui.resultInfo.textContent = `${this.filteredSongs.length} songs / ${count} anime${this.shuffleOrder ? ' · shuffled' : ''}${this.searchLimited ? ' · limited search' : ''}`;
+      this.virtualStart = -1;
+      if (this.activeView === 'coverage') this.renderCoverage();
+      else this.renderPage();
       this.updatePlayState();
     }
 
     setPage(page) {
-      this.page = Math.max(0, Math.min(page, Math.max(0, this.filteredSongs.length - 1)));
-      this.renderPage();
-      this.ui.list.scrollTop = 0;
+      this.ui.list.scrollTop = Math.max(0,page)*this.virtualRowHeight;
+      this.renderVirtual();
     }
 
     renderPage() {
+      if (this.activeView === 'coverage') return;
+      this.virtualStart = -1;
+      this.virtualData = this.viewRows();
+      this.ui.list.textContent = '';
+      this.ui.list.scrollTop = 0;
+      this.renderVirtual();
+    }
+
+    viewRows() {
+      if (this.activeView === 'anime') return this.getFilteredAnime().map(group => ({ kind:'anime',group }));
+      if (this.activeView === 'artists') {
+        const grouped = new Map();
+        const canonical = new Map();
+        // Build individual performer names, not separate entries for every duo.
+        for (const song of this.filteredSongs) {
+          for (const name of this.artistCreditNames(song.songEntry.artist)) {
+            const key = name.toLocaleLowerCase();
+            if (!canonical.has(key)) canonical.set(key, name);
+          }
+        }
+        // Count using the exact same search index that the Songs view uses.
+        // Includes collaborative credits and group members, only once per song.
+        for (const song of this.filteredSongs) {
+          const indexed = new Set((song._search?.artist || '').split(' | ').map(name => name.trim()).filter(Boolean));
+          for (const key of indexed) {
+            const name = canonical.get(key);
+            if (!name) continue;
+            let item = grouped.get(key);
+            if (!item) grouped.set(key, item = {name, songs:0, anime:new Set()});
+            item.songs++;
+            item.anime.add(song.animeEntry.annId);
+          }
+        }
+        return [...grouped.values()].sort((a,b) => b.songs-a.songs || a.name.localeCompare(b.name)).map(artist => ({kind:'artist',artist}));
+      }
+      // Keep an anime heading only once for each contiguous group. Other sort
+      // modes and shuffle remain a compact one-line-per-song list.
+      const sort = this.ui.form.elements.sort?.value || 'annId';
+      const grouped = !this.shuffleOrder && ['annId', 'anime', 'year'].includes(sort);
+      if (!grouped) return this.filteredSongs.map(song=>({kind:'song',song,inlineAnime:true}));
+      const rows=[];
+      let lastAnime=null;
+      for (const song of this.filteredSongs) {
+        const annId=String(song.animeEntry.annId);
+        if (annId!==lastAnime) {
+          rows.push({kind:'animeHeader',song});
+          lastAnime=annId;
+        }
+        rows.push({kind:'song',song});
+      }
+      return rows;
+    }
+
+    renderVirtual() {
+      if (!this.ui.list || this.activeView === 'coverage') return;
+      const list=this.ui.list, data=this.virtualData || [];
+      const size=this.virtualRowHeight;
+      const start=Math.max(0,Math.floor(list.scrollTop / size)-6);
+      const count=Math.ceil((list.clientHeight || 650)/size)+14;
+      const end=Math.min(data.length,start+count);
+      if (this.virtualStart === start && this.virtualEnd === end) return;
+      this.virtualStart=start; this.virtualEnd=end;
+      const fragment=document.createDocumentFragment();
+      const top=document.createElement('div'); top.style.height=(start*size)+'px'; fragment.append(top);
+      for(let i=start;i<end;i++) fragment.append(this.virtualRow(data[i]));
+      const bottom=document.createElement('div'); bottom.style.height=((data.length-end)*size)+'px'; fragment.append(bottom);
+      list.replaceChildren(fragment);
+      this.attachArtistHovers(list);
+    }
+
+    virtualRow(item) {
+      const wrap=document.createElement('div');
+      wrap.className='nsl-virtual-entry';
+      wrap.style.height=this.virtualRowHeight+'px';
+      if (item.kind==='animeHeader') {
+        const song=item.song;
+        const anime=song.animeEntry;
+        const name=this.displayAnimeName(song);
+        wrap.classList.add('nsl-group-heading','nsl-anime');
+        wrap.dataset.annId=anime.annId;
+        wrap.innerHTML=`<button class="nsl-anime-main" type="button" data-anime-link title="Open anime page"><span class="nsl-spoiler">${this.escape(name.main)}</span></button><select class="nsl-anime-status nsl-status-${anime.status}" data-anime-status data-old-status="${anime.status}" title="Change MAL status">${this.animeStatusOptions(anime.status)}</select><span class="nsl-chip">${this.escape(anime.category?.name||'')}</span><span class="nsl-chip">${anime.year||'-'}</span>`;
+      } else if(item.kind==='artist') {
+        const a=item.artist;
+        wrap.innerHTML=`<button class="nsl-artist-jump" type="button" data-artist-jump="${this.escape(a.name)}" title="Show this artist's songs">${this.escape(a.name)}</button><span class="nsl-chip">${a.songs} songs</span><span class="nsl-chip">${a.anime.size} anime</span>`;
+      } else if(item.kind==='anime') {
+        const a=item.group;
+        const name=this.displayAnimeName(a.firstSong);
+        wrap.classList.add('nsl-anime'); wrap.dataset.annId=a.annId;
+        wrap.innerHTML=`<span class="nsl-anime-short nsl-spoiler">${this.escape(name.main)}</span><select class="nsl-anime-status nsl-status-${a.anime.status}" data-anime-status data-old-status="${a.anime.status}" title="Change MAL status">${this.animeStatusOptions(a.anime.status)}</select><span class="nsl-chip">${this.escape(a.anime.category?.name||'')}</span><span class="nsl-chip">${a.anime.year||'-'}</span><span class="nsl-chip">${a.songs.length} songs</span>`;
+      } else {
+        const song=item.song;
+        const row=this.renderSongRow(song);
+        row.classList.add('nsl-virtual-song');
+        row.style.minHeight='0';
+        if (item.inlineAnime) {
+          // Show the anime in the same line instead of wasting a second row.
+          const name=row.querySelector('.nsl-song-name');
+          if (name) {
+            const inline=document.createElement('span');
+            inline.className='nsl-virtual-inline-anime nsl-spoiler';
+            inline.textContent='· '+this.displayAnimeName(song).main;
+            inline.title=inline.textContent;
+            name.append(inline);
+          }
+        }
+        wrap.append(row);
+        return wrap;
+      }
+      return wrap;
+    }
+
+    getFilteredAnime() {
+      const byId = new Map();
+      for (const song of this.filteredSongs) {
+        const key = String(song.animeEntry.annId);
+        if (!byId.has(key)) byId.set(key, { annId: key, anime: song.animeEntry, firstSong: song, songs: [] });
+        byId.get(key).songs.push(song);
+      }
+      return [...byId.values()];
+    }
+
+    renderAnimeOnly() {
       const list = this.ui.list;
-      list.textContent = '';
-      if (!this.filteredSongs.length) {
-        list.innerHTML = '<div class="nsl-empty">Nothing found. Try changing filters.</div>';
+      const anime = this.getFilteredAnime();
+      if (!anime.length) {
+        list.innerHTML = '<div class="nsl-empty">No anime found. Try changing filters.</div>';
         return;
       }
+      const start = Math.max(0, Math.min(this.animePage, Math.max(0, anime.length - 1)));
+      this.animePage = Math.floor(start / APP.pageSize) * APP.pageSize;
       const fragment = document.createDocumentFragment();
-      fragment.append(this.paginationNode());
-      const visible = this.filteredSongs.slice(this.page, this.page + APP.pageSize);
-      this.groupByAnime(visible).forEach((group) => fragment.append(this.renderAnimeGroup(group)));
-      fragment.append(this.paginationNode());
+      fragment.append(this.animePaginationNode(anime.length));
+      for (const group of anime.slice(this.animePage, this.animePage + APP.pageSize)) {
+        const section = this.renderAnimeGroup({ ...group, songs: [] });
+        section.classList.add('nsl-anime-only');
+        const chip = section.querySelector('.nsl-anime-tags .nsl-chip:last-child');
+        if (chip) chip.textContent = `${group.songs.length} songs`;
+        fragment.append(section);
+      }
+      fragment.append(this.animePaginationNode(anime.length));
       list.append(fragment);
-      this.attachArtistHovers(list);
+    }
+
+    animePaginationNode(count) {
+      const wrap = document.createElement('div');
+      wrap.className = 'nsl-pagination';
+      const to = Math.min(count, this.animePage + APP.pageSize);
+      wrap.innerHTML = `<button class="nsl-page-btn" type="button" data-page="${this.animePage - APP.pageSize}" ${this.animePage <= 0 ? 'disabled' : ''}>Prev</button><span>${this.animePage + 1}–${to} / ${count} anime</span><button class="nsl-page-btn" type="button" data-page="${this.animePage + APP.pageSize}" ${to >= count ? 'disabled' : ''}>Next</button>`;
+      return wrap;
     }
 
     groupByAnime(songs) {
@@ -987,13 +1430,23 @@
           <option value="0" ${song.songEntry.status === 0 ? 'selected' : ''}>-</option>
           <option value="2" ${song.songEntry.status === 2 ? 'selected' : ''}>D</option>
         </select>
-        <div style="display:flex;gap:6px;justify-content:flex-end;min-width:0"><button class="nsl-icon-btn" type="button" data-anime-link title="Open anime page">${icons.external}</button><button class="nsl-icon-btn" type="button" data-info title="Info">${icons.info}</button><button class="nsl-icon-btn" type="button" data-play-song title="Play">${icons.play}</button></div>`;
+        <div style="display:flex;gap:5px;justify-content:flex-end;min-width:0"><button class="nsl-icon-btn" type="button" data-anime-link title="Open anime page">${icons.external}</button><button class="nsl-icon-btn" type="button" data-info title="Info">${icons.info}</button><button class="nsl-icon-btn" type="button" data-play-song title="Play">${icons.play}</button></div>`;
       return row;
     }
 
     onListClick(event) {
       const pageButton = event.target.closest('[data-page]');
       if (pageButton && !pageButton.disabled) return this.setPage(Number(pageButton.dataset.page));
+      const artistJump = event.target.closest('[data-artist-jump]');
+      if (artistJump) {
+        this.ui.form.elements.search.value = artistJump.dataset.artistJump;
+        this.ui.form.elements.searchIn.value = 'artist';
+        this.ui.form.elements.partial.checked = false;
+        this.shuffleOrder = null;
+        this.setView('songs');
+        this.render();
+        return;
+      }
       const animeLink = event.target.closest('[data-anime-link]');
       if (animeLink) {
         const container = animeLink.closest('.nsl-song, .nsl-anime');
@@ -1161,6 +1614,7 @@
       if (!fileName) return;
       song.song.audio = fileName;
       this.state.currentTrack = song;
+      this.scheduleSessionSave();
       this.audio.src = `${APP.audioHost}${fileName}`;
       this.ui.trackTitle.innerHTML = `<span class="nsl-spoiler">${this.escape(song.songEntry.name)}</span> — <span class="nsl-spoiler"><span class="nsl-artist nsl-player-artist"></span></span>`;
       this.getArtistHover(song.songEntry.artist, $(this.ui.trackTitle).find('.nsl-player-artist'));
@@ -1175,6 +1629,10 @@
 
     togglePlay() {
       if (!this.state.currentTrack) return;
+      if (!this.audio.src) {
+        this.pendingResumeTime = Number(this.session?.time) || 0;
+        return this.loadSong(this.state.currentTrack);
+      }
       if (this.audio.paused) this.audio.play().catch(console.error);
       else this.audio.pause();
     }
